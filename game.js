@@ -6,7 +6,9 @@ const gameState = {
     health: 100,
     currentChallenge: null,
     selectedOption: null,
-    canAnswer: false
+    canAnswer: false,
+    lastGesture: null,
+    gestureTimeout: null
 };
 
 // 遊戲配置
@@ -131,6 +133,7 @@ async function initializeCamera() {
         });
 
         videoElement.srcObject = stream;
+        videoElement.style.transform = 'scaleX(1)';
         await videoElement.play();
 
         handCanvas.width = videoElement.videoWidth;
@@ -154,14 +157,26 @@ async function initializeCamera() {
     }
 }
 
+// 更新選項
+function updateOptions(challenge) {
+    const optionsContainer = document.querySelector('.options-container');
+    optionsContainer.innerHTML = `
+        <div class="option" data-position="top" data-index="0">${challenge.options[0]}</div>
+        <div class="option" data-position="right" data-index="1">${challenge.options[1]}</div>
+        <div class="option" data-position="bottom" data-index="2">${challenge.options[2]}</div>
+        <div class="option" data-position="left" data-index="3">${challenge.options[3]}</div>
+        <div class="option" data-position="center">?</div>
+    `;
+}
+
 // 手勢處理
 hands.onResults((results) => {
     const handCtx = handCanvas.getContext('2d');
     
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
     handCtx.save();
-    handCtx.scale(-1, 1);
-    handCtx.translate(-handCanvas.width, 0);
+    handCtx.scale(1, 1);
+    handCtx.translate(0, 0);
 
     // 繪製視訊
     handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
@@ -183,46 +198,46 @@ hands.onResults((results) => {
         // 遊戲控制邏輯
         if (gameState.isPlaying && gameState.canAnswer) {
             const hands = results.multiHandedness;
-            let leftHandRaised = false;
-            let rightHandRaised = false;
-            let leftHandY = null;
-            let rightHandY = null;
+            let currentGesture = null;
 
             hands.forEach((hand, index) => {
-                const handType = hand.label.toLowerCase() === 'left' ? 'right' : 'left';
+                const handType = hand.label.toLowerCase();
                 const landmarks = results.multiHandLandmarks[index];
                 const wristY = landmarks[0].y;
                 const indexFingerY = landmarks[8].y;
+                const indexFingerX = landmarks[8].x;
 
-                if (handType === 'left') {
-                    leftHandY = wristY;
-                    if (indexFingerY < wristY - 0.1) {
-                        leftHandRaised = true;
-                    }
-                } else if (handType === 'right') {
-                    rightHandY = wristY;
-                    if (indexFingerY < wristY - 0.1) {
-                        rightHandRaised = true;
+                // 檢測手勢方向
+                if (indexFingerY < wristY - 0.15) { // 向上
+                    currentGesture = 0;
+                } else if (indexFingerX > wristX + 0.15) { // 向右
+                    currentGesture = 1;
+                } else if (indexFingerY > wristY + 0.15) { // 向下
+                    currentGesture = 2;
+                } else if (indexFingerX < wristX - 0.15) { // 向左
+                    currentGesture = 3;
+                }
+
+                // 如果是右手且做出選擇手勢，確認答案
+                if (handType === 'right' && currentGesture !== null) {
+                    clearTimeout(gameState.gestureTimeout);
+                    if (gameState.lastGesture === currentGesture) {
+                        checkAnswer(currentGesture);
+                    } else {
+                        gameState.lastGesture = currentGesture;
+                        selectOption(currentGesture);
+                        // 設置確認計時器
+                        gameState.gestureTimeout = setTimeout(() => {
+                            gameState.lastGesture = null;
+                        }, 1500);
                     }
                 }
             });
 
-            // 使用左手上下移動選擇選項
-            if (leftHandY !== null) {
-                const normalizedY = leftHandY * handCanvas.height;
-                const optionHeight = handCanvas.height / 2;
-                const selectedIndex = Math.floor(normalizedY / optionHeight);
-                selectOption(Math.min(selectedIndex, 1));
-            }
-
-            // 使用右手確認選擇
-            if (rightHandRaised && gameState.selectedOption !== null) {
-                checkAnswer(gameState.selectedOption);
-            }
-
-            // 雙手舉起暫停遊戲
-            if (leftHandRaised && rightHandRaised) {
-                pauseGame();
+            // 如果沒有檢測到手勢，重置狀態
+            if (hands.length === 0) {
+                gameState.lastGesture = null;
+                clearTimeout(gameState.gestureTimeout);
             }
         }
     }
@@ -232,9 +247,13 @@ hands.onResults((results) => {
 
 // 選擇選項
 function selectOption(index) {
+    const options = document.querySelectorAll('.option');
     options.forEach(option => option.classList.remove('selected'));
-    options[index].classList.add('selected');
-    gameState.selectedOption = index;
+    const selectedOption = document.querySelector(`.option[data-index="${index}"]`);
+    if (selectedOption) {
+        selectedOption.classList.add('selected');
+        gameState.selectedOption = index;
+    }
 }
 
 // 檢查答案
@@ -289,6 +308,13 @@ function updateUI() {
     healthBar.style.width = `${gameState.health}%`;
 }
 
+// 更新挑戰題目
+function updateChallenge(challenge) {
+    const codeBlock = document.querySelector('.code-block pre');
+    codeBlock.textContent = challenge.code;
+    updateOptions(challenge);
+}
+
 // 下一個挑戰
 function nextChallenge() {
     const levelChallenges = challenges.filter(c => c.level === gameState.level);
@@ -305,14 +331,11 @@ function nextChallenge() {
     const randomIndex = Math.floor(Math.random() * availableChallenges.length);
     gameState.currentChallenge = availableChallenges[randomIndex];
     
-    challengeCode.textContent = gameState.currentChallenge.code;
-    options.forEach((option, index) => {
-        option.querySelector('.option-text').textContent = gameState.currentChallenge.options[index];
-    });
-    
+    updateChallenge(gameState.currentChallenge);
     gameState.selectedOption = null;
     gameState.canAnswer = true;
-    options.forEach(option => option.classList.remove('selected'));
+    gameState.lastGesture = null;
+    clearTimeout(gameState.gestureTimeout);
 }
 
 // 開始遊戲
