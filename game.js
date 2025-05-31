@@ -12,6 +12,10 @@ const loadingMessage = document.getElementById('loading-message');
 const switchCameraButton = document.getElementById('switch-camera');
 const toggleDebugButton = document.getElementById('toggle-debug');
 const scoreElement = document.getElementById('score');
+const questionBox = document.getElementById('question-box');
+const instructions = document.getElementById('instructions');
+const optionLeft = document.querySelector('.option.left');
+const optionRight = document.querySelector('.option.right');
 
 // Canvas contexts
 const handCtx = handCanvas.getContext('2d');
@@ -24,7 +28,10 @@ let gameState = {
     health: 3,
     playerX: 100,
     playerY: 300,
-    targets: []
+    targets: [],
+    currentQuestion: null,
+    canAnswer: false,
+    answerDelay: 1000 // 答題延遲（毫秒）
 };
 
 // 遊戲常數
@@ -64,6 +71,35 @@ const sprites = {
 
 // 粒子系統
 let particles = [];
+
+// 題目資料庫
+const questions = [
+    {
+        question: "哪個是正確的程式設計概念？",
+        options: ["程式越長越好", "重複使用程式碼"],
+        correct: 1
+    },
+    {
+        question: "哪個對學習比較有幫助？",
+        options: ["死記硬背", "理解並實作"],
+        correct: 1
+    },
+    {
+        question: "哪個是好的學習習慣？",
+        options: ["考前臨時抱佛腳", "定期複習"],
+        correct: 1
+    },
+    {
+        question: "哪個是較好的學習方法？",
+        options: ["被動接收", "主動思考"],
+        correct: 1
+    },
+    {
+        question: "寫程式時應該？",
+        options: ["能跑就好", "注重可讀性"],
+        correct: 1
+    }
+];
 
 class Particle {
     constructor(x, y, color, type = 'normal') {
@@ -168,6 +204,54 @@ async function initializeCamera() {
     }
 }
 
+// 顯示新問題
+function showQuestion() {
+    if (questions.length === 0) {
+        endGame();
+        return;
+    }
+
+    // 隨機選擇問題
+    const index = Math.floor(Math.random() * questions.length);
+    gameState.currentQuestion = questions.splice(index, 1)[0];
+
+    // 更新顯示
+    questionBox.querySelector('h2').textContent = gameState.currentQuestion.question;
+    optionLeft.textContent = gameState.currentQuestion.options[0];
+    optionRight.textContent = gameState.currentQuestion.options[1];
+
+    // 重置選項樣式
+    optionLeft.classList.remove('selected');
+    optionRight.classList.remove('selected');
+
+    // 延遲後允許回答
+    gameState.canAnswer = false;
+    setTimeout(() => {
+        gameState.canAnswer = true;
+    }, 1000);
+}
+
+// 處理答案
+function handleAnswer(choice) {
+    if (!gameState.canAnswer) return;
+
+    const isCorrect = choice === gameState.currentQuestion.correct;
+    if (isCorrect) {
+        gameState.score += 10;
+        scoreElement.textContent = `分數: ${gameState.score}`;
+    }
+
+    // 視覺反饋
+    const selectedOption = choice === 0 ? optionLeft : optionRight;
+    selectedOption.classList.add('selected');
+    selectedOption.style.background = isCorrect ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)';
+
+    // 延遲後顯示下一題
+    setTimeout(() => {
+        showQuestion();
+    }, gameState.answerDelay);
+}
+
 // 手勢處理
 hands.onResults((results) => {
     // 清除手部畫布
@@ -186,11 +270,22 @@ hands.onResults((results) => {
             });
         }
 
-        // 如果遊戲正在進行，更新玩家位置
-        if (gameState.isPlaying && results.multiHandLandmarks[0]) {
-            const hand = results.multiHandLandmarks[0];
-            gameState.playerX = hand[0].x * gameCanvas.width;
-            gameState.playerY = hand[0].y * gameCanvas.height;
+        // 如果遊戲正在進行，檢測手勢
+        if (gameState.isPlaying && gameState.canAnswer) {
+            results.multiHandedness.forEach((hand, index) => {
+                const handType = hand.label.toLowerCase();
+                const landmarks = results.multiHandLandmarks[index];
+                const palmY = landmarks[0].y;
+
+                // 檢測手是否舉起（y座標小於0.5）
+                if (palmY < 0.5) {
+                    if (handType === 'left') {
+                        handleAnswer(0);
+                    } else if (handType === 'right') {
+                        handleAnswer(1);
+                    }
+                }
+            });
         }
     }
 });
@@ -203,9 +298,15 @@ function startGame() {
         health: 3,
         playerX: gameCanvas.width / 2,
         playerY: gameCanvas.height / 2,
-        targets: []
+        targets: [],
+        currentQuestion: null,
+        canAnswer: false,
+        answerDelay: 1000
     };
     startButton.style.display = 'none';
+    scoreElement.textContent = '分數: 0';
+    instructions.classList.add('hide');
+    showQuestion();
     gameLoop();
 }
 
@@ -270,6 +371,8 @@ function endGame() {
     gameState.isPlaying = false;
     gameOverScreen.style.display = 'flex';
     gameOverScreen.querySelector('#final-score span').textContent = gameState.score;
+    optionLeft.style.display = 'none';
+    optionRight.style.display = 'none';
 }
 
 // 事件監聽器
