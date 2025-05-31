@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>手勢遊戲</title>
+    <title>手勢答題遊戲</title>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
@@ -13,7 +13,13 @@
   <body>
     <div class="container">
         <div class="game-area">
-            <canvas id="game-canvas"></canvas>
+            <div id="question-box">
+                <h2>準備開始</h2>
+                <div class="options">
+                    <div class="option left">左手邊選項</div>
+                    <div class="option right">右手邊選項</div>
+                </div>
+            </div>
             <div id="score">分數: 0</div>
         </div>
         
@@ -22,7 +28,20 @@
             <canvas id="hand-canvas"></canvas>
         </div>
 
-        <button id="start-button">開始遊戲</button>
+        <div id="instructions" class="instructions">
+            <h2>操作說明</h2>
+            <div class="instruction-content">
+                <div class="instruction-item">
+                    <span class="instruction-icon">👈</span>
+                    <span class="instruction-text">舉起左手選擇左邊選項</span>
+                </div>
+                <div class="instruction-item">
+                    <span class="instruction-icon">👉</span>
+                    <span class="instruction-text">舉起右手選擇右邊選項</span>
+                </div>
+            </div>
+            <button id="start-button">開始遊戲</button>
+        </div>
     </div>
     <script src="game.js"></script>
   </body>
