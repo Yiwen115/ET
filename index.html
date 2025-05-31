@@ -34,11 +34,11 @@
         <div class="sidebar">
             <div class="player-info">
                 <div class="player-avatar">
-                    <img src="https://avatars.dicebear.com/api/bottts/player.svg" alt="Player Avatar">
+                    <img src="https://avatars.dicebear.com/api/bottts/player.svg" alt="玩家頭像">
                 </div>
                 <div class="player-details">
-                    <h3>Code Explorer</h3>
-                    <div class="level-badge">Level <span id="level">1</span></div>
+                    <h3>程式探險家</h3>
+                    <div class="level-badge">等級 <span id="level">1</span></div>
                 </div>
             </div>
 
@@ -47,7 +47,7 @@
                     <span class="camera-title">手勢控制</span>
                     <div class="camera-status">
                         <span class="status-dot"></span>
-                        <span class="status-text">已連接</span>
+                        <span class="status-text">準備中</span>
                     </div>
                 </div>
                 <video id="input-video" playsinline></video>
@@ -76,7 +76,7 @@
                     <div class="stat-label">分數</div>
                     <div class="score-display">
                         <span id="score">0</span>
-                        <span class="score-points">pts</span>
+                        <span class="score-points">分</span>
                     </div>
                 </div>
                 <div class="stat-row">
@@ -92,12 +92,15 @@
         <div class="main-game-area">
             <div class="game-header">
                 <div class="challenge-info">
-                    <span class="challenge-number">Challenge #<span id="challenge-number">1</span></span>
-                    <span class="challenge-type">JavaScript Basics</span>
+                    <span class="challenge-number">挑戰 #<span id="challenge-number">1</span></span>
+                    <span class="challenge-type">JavaScript 基礎</span>
+                </div>
+                <div class="powerup-container">
+                    <!-- 道具會在這裡動態生成 -->
                 </div>
                 <div class="timer">
                     <span class="timer-icon">⏱️</span>
-                    <span id="time-left">30</span>s
+                    <span id="time-left">30</span>秒
                 </div>
             </div>
 
@@ -125,12 +128,31 @@
 
             <div class="game-footer">
                 <div class="combo-meter">
-                    <span class="combo-label">COMBO</span>
+                    <span class="combo-label">連擊</span>
                     <span class="combo-count" id="combo-count">x1</span>
                 </div>
                 <div class="achievement-popup" id="achievement-popup">
                     <span class="achievement-icon">🏆</span>
                     <span class="achievement-text">新成就解鎖！</span>
+                </div>
+                <div class="powerup-effect" id="powerup-effect" style="display: none;">
+                    <span class="effect-icon"></span>
+                    <span class="effect-text"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="game-settings">
+            <button class="settings-button" onclick="toggleSettings()">
+                <span class="settings-icon">⚙️</span>
+            </button>
+            <div class="settings-panel" style="display: none;">
+                <h3>遊戲設定</h3>
+                <div class="settings-group">
+                    <label>
+                        <input type="checkbox" checked onchange="toggleAutoBackground(this.checked)">
+                        自動切換背景
+                    </label>
                 </div>
             </div>
         </div>
