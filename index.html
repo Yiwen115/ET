@@ -7,40 +7,47 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
   </head>
 
   <body>
-    <div class="container">
-        <div class="game-area">
-            <div id="question-box">
-                <h2>準備開始</h2>
-                <div class="options">
-                    <div class="option left">左手邊選項</div>
-                    <div class="option right">右手邊選項</div>
-                </div>
-            </div>
-            <div id="score">分數: 0</div>
-        </div>
-        
-        <div class="camera-area">
+    <div class="main-container">
+        <div class="camera-container">
             <video id="input-video" playsinline></video>
             <canvas id="hand-canvas"></canvas>
         </div>
 
-        <div id="instructions" class="instructions">
-            <h2>操作說明</h2>
-            <div class="instruction-content">
-                <div class="instruction-item">
-                    <span class="instruction-icon">👈</span>
-                    <span class="instruction-text">舉起左手選擇左邊選項</span>
-                </div>
-                <div class="instruction-item">
-                    <span class="instruction-icon">👉</span>
-                    <span class="instruction-text">舉起右手選擇右邊選項</span>
+        <div class="game-container">
+            <div id="question-area">
+                <h2>準備開始答題</h2>
+                <div class="options-container">
+                    <div class="option left">
+                        <div class="option-content">左側選項</div>
+                    </div>
+                    <div class="option right">
+                        <div class="option-content">右側選項</div>
+                    </div>
                 </div>
             </div>
-            <button id="start-button">開始遊戲</button>
+            <div id="score">得分：0</div>
+        </div>
+
+        <div id="instructions" class="instructions-overlay">
+            <div class="instructions-content">
+                <h1>手勢答題遊戲</h1>
+                <div class="instruction-steps">
+                    <div class="step">
+                        <span class="icon">👈</span>
+                        <p>舉起左手選擇左邊答案</p>
+                    </div>
+                    <div class="step">
+                        <span class="icon">👉</span>
+                        <p>舉起右手選擇右邊答案</p>
+                    </div>
+                </div>
+                <button id="start-button">開始遊戲</button>
+            </div>
         </div>
     </div>
     <script src="game.js"></script>
