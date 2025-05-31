@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>手勢遊戲</title>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+
+  <body>
+    <div class="container">
+        <div class="game-area">
+            <canvas id="game-canvas"></canvas>
+            <div id="score">分數: 0</div>
+        </div>
+        
+        <div class="camera-area">
+            <video id="input-video" playsinline></video>
+            <canvas id="hand-canvas"></canvas>
+        </div>
+
+        <button id="start-button">開始遊戲</button>
+    </div>
+    <script src="game.js"></script>
+  </body>
+</html>
