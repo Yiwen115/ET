@@ -11,7 +11,21 @@ const gameState = {
     challengesCompleted: 0,
     timeLeft: 30,
     timer: null,
-    achievements: []
+    achievements: [],
+    powerups: {
+        timeFreeze: 2,
+        hintReveal: 3,
+        healthRestore: 1
+    },
+    statistics: {
+        totalCorrect: 0,
+        totalWrong: 0,
+        bestCombo: 0,
+        fastestAnswer: Infinity,
+        totalPlayTime: 0
+    },
+    currentBackground: 0,
+    startTime: null
 };
 
 // 遊戲配置
@@ -24,7 +38,21 @@ const config = {
     challengeTime: 30,
     maxCombo: 5,
     comboMultiplier: 1.5,
-    challengesPerLevel: 10
+    challengesPerLevel: 10,
+    backgrounds: [
+        'cyber-city',
+        'matrix-rain',
+        'digital-space',
+        'tech-grid'
+    ],
+    soundEffects: {
+        correct: 'correct.mp3',
+        wrong: 'wrong.mp3',
+        levelUp: 'level-up.mp3',
+        achievement: 'achievement.mp3',
+        gameOver: 'game-over.mp3',
+        background: 'background-music.mp3'
+    }
 };
 
 // 程式設計挑戰題庫
@@ -122,8 +150,195 @@ const achievements = [
         description: '在5秒內回答正確',
         icon: '⚡',
         unlocked: false
+    },
+    {
+        id: 'level_master',
+        title: '等級大師',
+        description: '達到第3級',
+        icon: '👑',
+        unlocked: false
+    },
+    {
+        id: 'perfect_score',
+        title: '完美解答',
+        description: '連續答對3題',
+        icon: '💯',
+        unlocked: false
+    },
+    {
+        id: 'time_wizard',
+        title: '時間魔法師',
+        description: '使用3次時間凍結',
+        icon: '⌛',
+        unlocked: false,
+        progress: 0,
+        maxProgress: 3
+    },
+    {
+        id: 'health_master',
+        title: '生命守護者',
+        description: '在生命值低於20%時完成挑戰',
+        icon: '❤️',
+        unlocked: false
+    },
+    {
+        id: 'speed_demon',
+        title: '極速惡魔',
+        description: '連續3次在10秒內回答正確',
+        icon: '👿',
+        unlocked: false,
+        progress: 0,
+        maxProgress: 3
     }
 ];
+
+// 道具系統
+const powerups = {
+    timeFreeze: {
+        name: '時間凍結',
+        description: '暫停倒數計時10秒',
+        icon: '⌛',
+        duration: 10,
+        use: function() {
+            if (gameState.powerups.timeFreeze > 0) {
+                gameState.powerups.timeFreeze--;
+                clearInterval(gameState.timer);
+                const originalTime = gameState.timeLeft;
+                showPowerupEffect('時間凍結！');
+                
+                setTimeout(() => {
+                    gameState.timeLeft = originalTime;
+                    startTimer();
+                }, 10000);
+                
+                updatePowerupDisplay();
+                
+                // 更新成就進度
+                const timeWizard = achievements.find(a => a.id === 'time_wizard');
+                if (!timeWizard.unlocked) {
+                    timeWizard.progress++;
+                    if (timeWizard.progress >= timeWizard.maxProgress) {
+                        timeWizard.unlocked = true;
+                        showAchievement(timeWizard);
+                    }
+                }
+            }
+        }
+    },
+    hintReveal: {
+        name: '提示顯示',
+        description: '顯示更詳細的提示',
+        icon: '💡',
+        use: function() {
+            if (gameState.powerups.hintReveal > 0) {
+                gameState.powerups.hintReveal--;
+                const detailedHint = gameState.currentChallenge.explanation;
+                showDetailedHint(detailedHint);
+                updatePowerupDisplay();
+            }
+        }
+    },
+    healthRestore: {
+        name: '生命恢復',
+        description: '恢復50%生命值',
+        icon: '❤️',
+        use: function() {
+            if (gameState.powerups.healthRestore > 0) {
+                gameState.powerups.healthRestore--;
+                gameState.health = Math.min(100, gameState.health + 50);
+                showPowerupEffect('生命恢復！');
+                updatePowerupDisplay();
+                updateUI();
+            }
+        }
+    }
+};
+
+// 新增音效系統
+let backgroundMusic;
+const soundEffects = {};
+
+function initializeAudio() {
+    // 背景音樂
+    backgroundMusic = new Audio('background-music.mp3');
+    backgroundMusic.loop = true;
+    backgroundMusic.volume = 0.3;
+
+    // 音效
+    Object.entries(config.soundEffects).forEach(([key, file]) => {
+        soundEffects[key] = new Audio(file);
+        soundEffects[key].volume = 0.5;
+    });
+}
+
+function playSound(soundName) {
+    if (soundEffects[soundName]) {
+        soundEffects[soundName].currentTime = 0;
+        soundEffects[soundName].play().catch(e => console.log('音效播放失敗:', e));
+    }
+}
+
+// 顯示道具效果
+function showPowerupEffect(message) {
+    const effectOverlay = document.createElement('div');
+    effectOverlay.className = 'powerup-effect animate__animated animate__fadeIn';
+    effectOverlay.innerHTML = `
+        <div class="effect-content">
+            <span class="effect-text">${message}</span>
+        </div>
+    `;
+    document.body.appendChild(effectOverlay);
+    
+    setTimeout(() => {
+        effectOverlay.classList.remove('animate__fadeIn');
+        effectOverlay.classList.add('animate__fadeOut');
+        setTimeout(() => effectOverlay.remove(), 1000);
+    }, 2000);
+}
+
+// 顯示詳細提示
+function showDetailedHint(hint) {
+    const hintBox = document.querySelector('.hint-box');
+    const originalHint = hintBox.innerHTML;
+    
+    hintBox.innerHTML = `
+        <span class="hint-icon">💡</span>
+        <span id="challenge-hint" class="detailed-hint">${hint}</span>
+    `;
+    
+    setTimeout(() => {
+        hintBox.innerHTML = originalHint;
+    }, 10000);
+}
+
+// 更新道具顯示
+function updatePowerupDisplay() {
+    const powerupContainer = document.querySelector('.powerup-container');
+    if (!powerupContainer) return;
+    
+    powerupContainer.innerHTML = Object.entries(gameState.powerups).map(([key, count]) => `
+        <div class="powerup-item" onclick="powerups['${key}'].use()">
+            <span class="powerup-icon">${powerups[key].icon}</span>
+            <span class="powerup-count">x${count}</span>
+            <div class="powerup-tooltip">
+                <strong>${powerups[key].name}</strong>
+                <p>${powerups[key].description}</p>
+            </div>
+        </div>
+    `).join('');
+}
+
+// 更新遊戲背景
+function updateBackground() {
+    const mainGame = document.querySelector('.main-game-area');
+    mainGame.style.backgroundImage = `url(backgrounds/${config.backgrounds[gameState.currentBackground]}.jpg)`;
+}
+
+// 切換背景
+function cycleBackground() {
+    gameState.currentBackground = (gameState.currentBackground + 1) % config.backgrounds.length;
+    updateBackground();
+}
 
 // DOM 元素
 const videoElement = document.getElementById('input-video');
@@ -164,6 +379,19 @@ function handleOrientationChange() {
     }
 }
 
+// 手勢控制狀態
+const handControl = {
+    lastLeftHandY: null,
+    lastRightHandY: null,
+    selectionCooldown: false,
+    confirmCooldown: false,
+    pauseCooldown: false,
+    cooldownTime: 500, // 冷卻時間（毫秒）
+    selectionThreshold: 0.1, // 選擇靈敏度
+    confirmThreshold: 0.15, // 確認手勢靈敏度
+    debugMode: false // 開啟後會顯示手部偵測資訊
+};
+
 // 初始化手部檢測
 const hands = new Hands({
     locateFile: (file) => {
@@ -171,6 +399,7 @@ const hands = new Hands({
     }
 });
 
+// 更詳細的手部檢測配置
 hands.setOptions({
     maxNumHands: 2,
     modelComplexity: 1,
@@ -181,6 +410,9 @@ hands.setOptions({
 // 初始化相機
 async function initializeCamera() {
     try {
+        // 更新相機狀態為正在連接
+        updateCameraStatus('正在連接...', 'warning');
+
         const constraints = {
             video: {
                 width: { ideal: isMobile ? 1280 : 640 },
@@ -192,6 +424,14 @@ async function initializeCamera() {
 
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         videoElement.srcObject = stream;
+        
+        // 等待視頻元素完全加載
+        await new Promise((resolve) => {
+            videoElement.onloadedmetadata = () => {
+                resolve();
+            };
+        });
+
         await videoElement.play();
 
         // 設置畫布尺寸
@@ -212,69 +452,73 @@ async function initializeCamera() {
 
             handCanvas.width = canvasWidth;
             handCanvas.height = canvasHeight;
+
+            // 設置繪圖上下文的變換
+            const handCtx = handCanvas.getContext('2d');
+            handCtx.translate(handCanvas.width, 0);
+            handCtx.scale(-1, 1);
         };
 
-        // 監聽視頻加載完成事件
+        // 監聽視頻加載和窗口調整事件
         videoElement.addEventListener('loadedmetadata', setCanvasSize);
         window.addEventListener('resize', setCanvasSize);
+        setCanvasSize();
 
+        // 初始化相機處理
         const camera = new Camera(videoElement, {
             onFrame: async () => {
-                await hands.send({image: videoElement});
+                try {
+                    await hands.send({image: videoElement});
+                } catch (error) {
+                    console.error('手部檢測錯誤:', error);
+                    updateCameraStatus('檢測錯誤', 'error');
+                }
             },
             width: videoElement.videoWidth,
             height: videoElement.videoHeight
         });
 
+        // 啟動相機
         await camera.start();
+        
+        updateCameraStatus('已連接', 'success');
         loadingScreen.style.display = 'none';
         tutorial.style.display = 'flex';
 
-        // 更新相機狀態
-        document.querySelector('.camera-status .status-text').textContent = '已連接';
-        document.querySelector('.camera-status .status-dot').style.backgroundColor = 'var(--success-color)';
-
     } catch (error) {
         console.error('相機初始化錯誤:', error);
-        loadingScreen.style.display = 'none';
-        showError('無法訪問相機', '請確保已授予相機權限並重新整理頁面。');
+        showError('相機初始化失敗', '請確保已授予相機權限並重新整理頁面。錯誤信息: ' + error.message);
     }
 }
 
-// 錯誤提示
-function showError(title, message) {
-    const errorOverlay = document.createElement('div');
-    errorOverlay.className = 'error-overlay';
-    errorOverlay.innerHTML = `
-        <div class="error-content">
-            <h2>${title}</h2>
-            <p>${message}</p>
-            <button onclick="location.reload()" class="game-button">
-                <span class="button-text">重試</span>
-                <span class="button-icon">🔄</span>
-            </button>
-        </div>
-    `;
-    document.body.appendChild(errorOverlay);
+// 更新相機狀態
+function updateCameraStatus(message, type) {
+    const statusText = document.querySelector('.camera-status .status-text');
+    const statusDot = document.querySelector('.camera-status .status-dot');
+    
+    statusText.textContent = message;
+    statusDot.style.backgroundColor = type === 'success' ? 'var(--success-color)' :
+                                    type === 'warning' ? 'var(--warning-color)' :
+                                    'var(--error-color)';
 }
 
 // 手勢處理
 hands.onResults((results) => {
     const handCtx = handCanvas.getContext('2d');
     
+    // 清除畫布
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
     handCtx.save();
-    
+
     // 繪製攝像頭畫面
     handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
 
-    if (results.multiHandLandmarks) {
-        // 計算畫布縮放比例
-        const scaleX = handCanvas.width / videoElement.videoWidth;
-        const scaleY = handCanvas.height / videoElement.videoHeight;
+    // 更新手部檢測狀態
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        updateCameraStatus(`檢測到 ${results.multiHandLandmarks.length} 隻手`, 'success');
 
         // 繪製手部標記
-        for (const landmarks of results.multiHandLandmarks) {
+        results.multiHandLandmarks.forEach((landmarks, index) => {
             // 轉換座標
             const scaledLandmarks = landmarks.map(landmark => ({
                 x: landmark.x * handCanvas.width,
@@ -282,27 +526,41 @@ hands.onResults((results) => {
                 z: landmark.z
             }));
 
+            // 繪製連接線
             drawConnectors(handCtx, scaledLandmarks, HAND_CONNECTIONS, {
                 color: '#00FF00',
-                lineWidth: 2
+                lineWidth: 3
             });
+
+            // 繪製關鍵點
             drawLandmarks(handCtx, scaledLandmarks, {
                 color: '#FF0000',
-                lineWidth: 1,
-                radius: 3
+                lineWidth: 2,
+                radius: 4,
+                fillColor: '#FFFFFF'
             });
-        }
+
+            // 顯示手部類型和調試信息
+            if (handControl.debugMode) {
+                const handType = results.multiHandedness[index].label;
+                const handX = landmarks[0].x * handCanvas.width;
+                const handY = landmarks[0].y * handCanvas.height;
+                
+                handCtx.fillStyle = '#FFFFFF';
+                handCtx.font = '16px Arial';
+                handCtx.fillText(`${handType} (${Math.round(handX)}, ${Math.round(handY)})`, handX, handY - 10);
+            }
+        });
 
         // 遊戲控制邏輯
         if (gameState.isPlaying && gameState.canAnswer) {
-            const hands = results.multiHandedness;
             let leftHandRaised = false;
             let rightHandRaised = false;
             let leftHandY = null;
             let rightHandY = null;
 
-            hands.forEach((hand, index) => {
-                const landmarks = results.multiHandLandmarks[index];
+            results.multiHandLandmarks.forEach((landmarks, index) => {
+                const handType = results.multiHandedness[index].label;
                 const wristY = landmarks[0].y;
                 const indexFingerY = landmarks[8].y;
                 const handX = landmarks[0].x;
@@ -312,41 +570,53 @@ hands.onResults((results) => {
                 
                 if (isOnLeftSide) {
                     leftHandY = wristY;
-                    if (indexFingerY < wristY - 0.1) {
+                    if (indexFingerY < wristY - handControl.selectionThreshold) {
                         leftHandRaised = true;
                     }
                 } else {
                     rightHandY = wristY;
-                    if (indexFingerY < wristY - 0.1) {
+                    if (indexFingerY < wristY - handControl.confirmThreshold) {
                         rightHandRaised = true;
                     }
                 }
-
-                // 顯示手部位置提示
-                const debugText = isOnLeftSide ? "左手" : "右手";
-                handCtx.fillStyle = '#ffffff';
-                handCtx.font = '16px Arial';
-                handCtx.fillText(debugText, handX * handCanvas.width, wristY * handCanvas.height);
             });
 
-            // 使用左手上下移動選擇選項
-            if (leftHandY !== null) {
-                const normalizedY = leftHandY * handCanvas.height;
-                const optionHeight = handCanvas.height / 2;
-                const selectedIndex = Math.floor(normalizedY / optionHeight);
-                selectOption(Math.min(selectedIndex, 1));
+            // 使用左手上下移動選擇選項（加入冷卻時間）
+            if (leftHandY !== null && !handControl.selectionCooldown) {
+                const normalizedY = leftHandY;
+                const selectedIndex = Math.floor(normalizedY * 2);
+                
+                if (Math.abs((handControl.lastLeftHandY || 0) - normalizedY) > handControl.selectionThreshold) {
+                    selectOption(Math.min(selectedIndex, 1));
+                    handControl.selectionCooldown = true;
+                    setTimeout(() => {
+                        handControl.selectionCooldown = false;
+                    }, handControl.cooldownTime);
+                }
+                
+                handControl.lastLeftHandY = normalizedY;
             }
 
-            // 使用右手確認選擇
-            if (rightHandRaised && gameState.selectedOption !== null) {
+            // 使用右手確認選擇（加入冷卻時間）
+            if (rightHandRaised && gameState.selectedOption !== null && !handControl.confirmCooldown) {
                 checkAnswer(gameState.selectedOption);
+                handControl.confirmCooldown = true;
+                setTimeout(() => {
+                    handControl.confirmCooldown = false;
+                }, handControl.cooldownTime);
             }
 
-            // 雙手舉起暫停遊戲
-            if (leftHandRaised && rightHandRaised) {
+            // 雙手舉起暫停遊戲（加入冷卻時間）
+            if (leftHandRaised && rightHandRaised && !handControl.pauseCooldown) {
                 pauseGame();
+                handControl.pauseCooldown = true;
+                setTimeout(() => {
+                    handControl.pauseCooldown = false;
+                }, handControl.cooldownTime);
             }
         }
+    } else {
+        updateCameraStatus('未檢測到手部', 'warning');
     }
     
     handCtx.restore();
@@ -488,8 +758,8 @@ function levelUp() {
     levelUpOverlay.className = 'level-up-overlay animate__animated animate__fadeIn';
     levelUpOverlay.innerHTML = `
         <div class="level-up-content">
-            <h2>Level Up! 🎉</h2>
-            <p>你已經升到 Level ${gameState.level}</p>
+            <h2>等級提升！🎉</h2>
+            <p>你已經升到第 ${gameState.level} 級</p>
             <button onclick="this.parentElement.parentElement.remove(); nextChallenge();" class="game-button">
                 <span class="button-text">繼續挑戰</span>
                 <span class="button-icon">➡️</span>
@@ -497,6 +767,15 @@ function levelUp() {
         </div>
     `;
     document.body.appendChild(levelUpOverlay);
+
+    // 檢查等級成就
+    if (gameState.level === 3) {
+        const levelMaster = achievements.find(a => a.id === 'level_master');
+        if (!levelMaster.unlocked) {
+            levelMaster.unlocked = true;
+            showAchievement(levelMaster);
+        }
+    }
 }
 
 // 顯示反饋
@@ -569,10 +848,25 @@ function startGame() {
     gameState.health = config.maxHealth;
     gameState.combo = 1;
     gameState.challengesCompleted = 0;
+    gameState.startTime = Date.now();
     
+    // 初始化音效
+    initializeAudio();
+    backgroundMusic.play().catch(e => console.log('背景音樂播放失敗:', e));
+    
+    // 隱藏教學
     tutorial.style.display = 'none';
+    
+    // 更新UI
     updateUI();
+    updatePowerupDisplay();
+    updateBackground();
+    
+    // 開始第一個挑戰
     nextChallenge();
+    
+    // 開始背景循環
+    setInterval(cycleBackground, 30000);
 }
 
 // 暫停遊戲
@@ -606,6 +900,8 @@ function showTutorial() {
 function endGame() {
     gameState.isPlaying = false;
     clearInterval(gameState.timer);
+    backgroundMusic.pause();
+    playSound('gameOver');
     
     const gameOverOverlay = document.createElement('div');
     gameOverOverlay.className = 'game-over-overlay animate__animated animate__fadeIn';
@@ -626,6 +922,31 @@ function endGame() {
                     <span class="stat-value">${gameState.challengesCompleted}</span>
                 </div>
             </div>
+            <div class="statistics-summary">
+                <h3>遊戲統計</h3>
+                <div class="statistics-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">正確次數</span>
+                        <span class="stat-value">${gameState.statistics.totalCorrect}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">錯誤次數</span>
+                        <span class="stat-value">${gameState.statistics.totalWrong}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最佳連擊</span>
+                        <span class="stat-value">${gameState.statistics.bestCombo}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">最快回答</span>
+                        <span class="stat-value">${gameState.statistics.fastestAnswer === Infinity ? '-' : gameState.statistics.fastestAnswer + '秒'}</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">遊戲時間</span>
+                        <span class="stat-value">${Math.floor(gameState.statistics.totalPlayTime / 60)}分${gameState.statistics.totalPlayTime % 60}秒</span>
+                    </div>
+                </div>
+            </div>
             <div class="achievements-summary">
                 <h3>解鎖成就</h3>
                 <div class="achievements-list">
@@ -633,14 +954,21 @@ function endGame() {
                         <div class="achievement-item">
                             <span class="achievement-icon">${a.icon}</span>
                             <span class="achievement-title">${a.title}</span>
+                            <span class="achievement-desc">${a.description}</span>
                         </div>
-                    `).join('')}
+                    `).join('') || '<p>尚未解鎖任何成就</p>'}
                 </div>
             </div>
-            <button onclick="location.reload()" class="game-button">
-                <span class="button-text">重新挑戰</span>
-                <span class="button-icon">🔄</span>
-            </button>
+            <div class="game-over-buttons">
+                <button onclick="location.reload()" class="game-button">
+                    <span class="button-text">重新挑戰</span>
+                    <span class="button-icon">🔄</span>
+                </button>
+                <button onclick="showTutorial()" class="game-button secondary">
+                    <span class="button-text">查看教學</span>
+                    <span class="button-icon">📖</span>
+                </button>
+            </div>
         </div>
     `;
     document.body.appendChild(gameOverOverlay);
@@ -674,7 +1002,7 @@ function completeGame() {
                             <span class="achievement-icon">${a.icon}</span>
                             <span class="achievement-title">${a.title}</span>
                         </div>
-                    `).join('')}
+                    `).join('') || '<p>尚未解鎖任何成就</p>'}
                 </div>
             </div>
             <button onclick="location.reload()" class="game-button">
@@ -686,9 +1014,23 @@ function completeGame() {
     document.body.appendChild(gameCompleteOverlay);
 }
 
+// 確保在頁面加載完成後初始化
+document.addEventListener('DOMContentLoaded', () => {
+    // 檢查瀏覽器支援
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        showError('瀏覽器不支援', '您的瀏覽器不支援攝像頭功能，請使用最新版本的Chrome、Firefox或Safari瀏覽器。');
+        return;
+    }
+
+    // 初始化相機
+    initializeCamera().catch(error => {
+        console.error('初始化失敗:', error);
+        showError('初始化失敗', '請確保已授予相機權限並重新整理頁面。');
+    });
+});
+
 // 事件監聽
 startGameButton.addEventListener('click', startGame);
-window.addEventListener('load', initializeCamera);
 
 // 添加鍵盤控制（用於測試）
 document.addEventListener('keydown', (e) => {
@@ -708,5 +1050,42 @@ document.addEventListener('keydown', (e) => {
         case 'Escape':
             pauseGame();
             break;
+    }
+});
+
+// 在遊戲結束時更新統計資料
+function updateStatistics(isCorrect, answerTime) {
+    if (isCorrect) {
+        gameState.statistics.totalCorrect++;
+        gameState.statistics.fastestAnswer = Math.min(gameState.statistics.fastestAnswer, answerTime);
+        gameState.statistics.bestCombo = Math.max(gameState.statistics.bestCombo, gameState.combo);
+    } else {
+        gameState.statistics.totalWrong++;
+    }
+    
+    gameState.statistics.totalPlayTime = Math.floor((Date.now() - gameState.startTime) / 1000);
+}
+
+// 切換調試模式
+function toggleDebugMode() {
+    handControl.debugMode = !handControl.debugMode;
+    updateCameraStatus(handControl.debugMode ? '調試模式開啟' : '已連接', 'success');
+}
+
+// 調整手勢靈敏度
+function updateHandSensitivity(type, value) {
+    if (type === 'selection') {
+        handControl.selectionThreshold = value;
+    } else if (type === 'confirm') {
+        handControl.confirmThreshold = value;
+    }
+}
+
+// 添加鍵盤快捷鍵
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'D' && e.ctrlKey) {
+        // Ctrl + D 切換調試模式
+        e.preventDefault();
+        toggleDebugMode();
     }
 }); 
