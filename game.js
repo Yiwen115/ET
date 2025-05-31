@@ -10,7 +10,9 @@ const gameState = {
     lastGesture: null,
     gestureTimeout: null,
     timer: null,
-    timeLeft: 0
+    timeLeft: 0,
+    leftHandGesture: null,  // 新增：左手手勢
+    rightHandGesture: null  // 新增：右手手勢
 };
 
 // 遊戲配置
@@ -28,83 +30,55 @@ const config = {
 // 程式設計挑戰題庫
 const challenges = [
     {
-        level: 1,
-        code: `function sayHello() {
-    // 填入正確的程式碼
-    ___________
-}`,
+        code: `// 如何在JavaScript中輸出 "Hello World"？
+console._____("Hello World");`,
         options: [
-            'console.log("Hello, World!");',
-            'print("Hello, World!");',
-            'echo("Hello, World!");',
-            'System.out.println("Hello, World!");'
+            'log',
+            'print',
+            'write',
+            'echo'
         ],
         correct: 0,
-        hint: "JavaScript中使用console.log()來輸出訊息",
-        explanation: "console.log()是JavaScript中用於在控制台輸出訊息的標準方法。"
+        explanation: "在JavaScript中，console.log()是最常用的輸出方法。"
     },
     {
-        level: 1,
-        code: `// 宣告一個變數
-___ name = "Alice";`,
+        code: `// 宣告一個變數 x 並賦值為 10
+___ x = 10;`,
         options: [
-            'var',
-            'string',
+            'let',
+            'int',
             'dim',
-            'def'
+            'var'
         ],
         correct: 0,
-        hint: "JavaScript中使用var、let或const來宣告變數",
-        explanation: "var是JavaScript中宣告變數的其中一種方式。"
+        explanation: "let 是 JavaScript 中宣告變數的現代方式。"
     },
     {
-        level: 2,
-        code: `// 創建一個陣列
-const numbers = [1, 2, 3, 4, 5];
-// 如何取得陣列的長度？
-console.log(_________);`,
+        code: `// 如何獲取陣列的長度？
+const arr = [1, 2, 3];
+console.log(arr.____);`,
         options: [
-            'numbers.length',
-            'numbers.size()',
-            'numbers.count',
-            'len(numbers)'
+            'length',
+            'size',
+            'count',
+            'len'
         ],
         correct: 0,
-        hint: "JavaScript陣列有一個屬性可以獲取長度",
-        explanation: "length是JavaScript陣列的屬性，用於獲取陣列的長度。"
+        explanation: "在 JavaScript 中，使用 length 屬性來獲取陣列長度。"
     },
     {
-        level: 2,
-        code: `// 條件判斷
-let age = 18;
-if (___) {
-    console.log("成年");
+        code: `// 如何檢查 x 是否大於 10？
+if (x ___ 10) {
+    console.log("x 大於 10");
 }`,
         options: [
-            'age >= 18',
-            'age => 18',
-            'age equals 18',
-            'age.isAdult()'
+            '>',
+            '=>',
+            '->',
+            'gt'
         ],
         correct: 0,
-        hint: "使用正確的比較運算符",
-        explanation: ">= 是「大於等於」的比較運算符。"
-    },
-    {
-        level: 3,
-        code: `// 迴圈結構
-_____ (let i = 0; i < 5; i++) {
-    console.log(i);
-}`,
-        options: [
-            'for',
-            'while',
-            'loop',
-            'repeat'
-        ],
-        correct: 0,
-        hint: "這是最常見的迴圈結構",
-        explanation: "for迴圈是最常用的迴圈結構之一，適用於已知迭代次數的情況。"
+        explanation: "> 符號用於比較大小，表示「大於」。"
     }
 ];
 
@@ -189,12 +163,14 @@ hands.onResults((results) => {
     
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
     handCtx.save();
-    handCtx.scale(1, 1);
-    handCtx.translate(0, 0);
-
-    // 繪製視訊
+    
+    // 繪製鏡像的視訊
+    handCtx.scale(-1, 1);
+    handCtx.translate(-handCanvas.width, 0);
     handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
-
+    handCtx.restore();
+    
+    handCtx.save();
     if (results.multiHandLandmarks) {
         // 繪製手部標記
         for (const landmarks of results.multiHandLandmarks) {
@@ -212,67 +188,96 @@ hands.onResults((results) => {
         // 遊戲控制邏輯
         if (gameState.isPlaying && gameState.canAnswer) {
             const hands = results.multiHandedness;
-            let currentGesture = null;
+            
+            // 重置手勢狀態
+            let leftHandGesture = null;
+            let rightHandGesture = null;
 
             hands.forEach((hand, index) => {
-                // 因為攝像頭是鏡像的，所以我們需要反轉手的類型
-                const handType = hand.label.toLowerCase() === 'left' ? 'right' : 'left';
+                const handType = hand.label.toLowerCase();
                 const landmarks = results.multiHandLandmarks[index];
                 
                 // 獲取手腕和食指的座標
                 const wrist = landmarks[0];
                 const indexFinger = landmarks[8];
                 
-                // 計算相對位移
+                // 計算相對位移（考慮鏡像效果）
                 const deltaY = indexFinger.y - wrist.y;
-                const deltaX = indexFinger.x - wrist.x;
+                const deltaX = -(indexFinger.x - wrist.x); // 反轉 X 軸方向
                 
                 // 設定手勢判定的閾值
                 const threshold = 0.15;
                 
                 // 判斷手勢方向
+                let gesture = null;
                 if (Math.abs(deltaY) > Math.abs(deltaX)) {
                     // 垂直移動
                     if (deltaY < -threshold) {
-                        currentGesture = 0; // 上
+                        gesture = 0; // 上
                     } else if (deltaY > threshold) {
-                        currentGesture = 2; // 下
+                        gesture = 2; // 下
                     }
                 } else {
                     // 水平移動
                     if (deltaX < -threshold) {
-                        currentGesture = 3; // 左
+                        gesture = 3; // 左
                     } else if (deltaX > threshold) {
-                        currentGesture = 1; // 右
+                        gesture = 1; // 右
                     }
                 }
 
-                // 如果是右手且做出選擇手勢，確認答案
-                if (handType === 'right' && currentGesture !== null) {
-                    clearTimeout(gameState.gestureTimeout);
-                    if (gameState.lastGesture === currentGesture) {
-                        checkAnswer(currentGesture);
-                    } else {
-                        gameState.lastGesture = currentGesture;
-                        selectOption(currentGesture);
-                        // 設置確認計時器
-                        gameState.gestureTimeout = setTimeout(() => {
-                            gameState.lastGesture = null;
-                        }, 1500);
-                    }
+                // 根據手的類型儲存手勢
+                if (handType === 'left') {
+                    leftHandGesture = gesture;
+                } else {
+                    rightHandGesture = gesture;
                 }
             });
 
-            // 如果沒有檢測到手勢，重置狀態
-            if (hands.length === 0) {
-                gameState.lastGesture = null;
-                clearTimeout(gameState.gestureTimeout);
+            // 更新遊戲狀態中的手勢
+            gameState.leftHandGesture = leftHandGesture;
+            gameState.rightHandGesture = rightHandGesture;
+
+            // 處理手勢邏輯
+            if (leftHandGesture !== null) {
+                // 左手選擇選項
+                selectOption(leftHandGesture);
             }
+
+            // 如果右手做出確認手勢（向上），且已經選擇了選項
+            if (rightHandGesture === 0 && gameState.selectedOption !== null) {
+                checkAnswer(gameState.selectedOption);
+            }
+
+            // 如果雙手同時向下，暫停遊戲
+            if (leftHandGesture === 2 && rightHandGesture === 2) {
+                pauseGame();
+            }
+
+            // 更新手勢提示
+            updateGestureHint(leftHandGesture, rightHandGesture);
         }
     }
     
     handCtx.restore();
 });
+
+// 更新手勢提示
+function updateGestureHint(leftGesture, rightGesture) {
+    const gestureHint = document.querySelector('.gesture-hint');
+    if (!gestureHint) return;
+
+    let hintText = '';
+    if (leftGesture !== null) {
+        const directions = ['上', '右', '下', '左'];
+        hintText = `左手：${directions[leftGesture]} `;
+    }
+    if (rightGesture !== null) {
+        hintText += rightGesture === 0 ? '右手：確認' : '';
+    }
+
+    gestureHint.textContent = hintText || '等待手勢...';
+}
 
 // 選擇選項
 function selectOption(index) {
@@ -348,9 +353,11 @@ function showFeedback(isCorrect, explanation, bonus = '') {
 
 // 更新UI
 function updateUI() {
-    levelDisplay.textContent = gameState.level;
-    scoreDisplay.textContent = gameState.score;
-    healthBar.style.width = `${gameState.health}%`;
+    const healthText = document.querySelector('.health-text');
+    const healthFill = document.querySelector('.health-fill');
+    
+    healthText.textContent = `${Math.round(gameState.health)}%`;
+    healthFill.style.width = `${gameState.health}%`;
     document.querySelector('.code-quality').textContent = gameState.codeQuality;
     document.querySelector('.streak-count').textContent = gameState.streak;
 }
@@ -364,20 +371,8 @@ function updateChallenge(challenge) {
 
 // 下一個挑戰
 function nextChallenge() {
-    const levelChallenges = challenges.filter(c => c.level === gameState.level);
-    
-    if (levelChallenges.length === 0) {
-        gameState.level++;
-        if (gameState.level > 3) {
-            completeGame();
-            return;
-        }
-    }
-    
-    const availableChallenges = challenges.filter(c => c.level === gameState.level);
-    const randomIndex = Math.floor(Math.random() * availableChallenges.length);
-    gameState.currentChallenge = availableChallenges[randomIndex];
-    
+    const randomIndex = Math.floor(Math.random() * challenges.length);
+    gameState.currentChallenge = challenges[randomIndex];
     updateChallenge(gameState.currentChallenge);
     gameState.selectedOption = null;
     gameState.canAnswer = true;
@@ -392,7 +387,7 @@ function startGame() {
     gameState.codeQuality = 0;
     gameState.streak = 0;
     
-    tutorial.style.display = 'none';
+    document.getElementById('tutorial').style.display = 'none';
     updateUI();
     nextChallenge();
     startTimer();
