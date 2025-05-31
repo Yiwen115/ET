@@ -131,6 +131,7 @@ async function initializeCamera() {
         });
 
         videoElement.srcObject = stream;
+        videoElement.style.transform = 'scaleX(1)';
         await videoElement.play();
 
         handCanvas.width = videoElement.videoWidth;
@@ -160,10 +161,7 @@ hands.onResults((results) => {
     
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
     handCtx.save();
-    handCtx.scale(-1, 1);
-    handCtx.translate(-handCanvas.width, 0);
-
-    // 繪製視訊
+    
     handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
 
     if (results.multiHandLandmarks) {
@@ -193,18 +191,26 @@ hands.onResults((results) => {
                 const landmarks = results.multiHandLandmarks[index];
                 const wristY = landmarks[0].y;
                 const indexFingerY = landmarks[8].y;
+                const handX = landmarks[0].x;
 
-                if (handType === 'left') {
+                const isOnLeftSide = handX < 0.5;
+                
+                if (isOnLeftSide) {
                     leftHandY = wristY;
                     if (indexFingerY < wristY - 0.1) {
                         leftHandRaised = true;
                     }
-                } else if (handType === 'right') {
+                } else {
                     rightHandY = wristY;
                     if (indexFingerY < wristY - 0.1) {
                         rightHandRaised = true;
                     }
                 }
+
+                const debugText = isOnLeftSide ? "左手" : "右手";
+                handCtx.fillStyle = '#ffffff';
+                handCtx.font = '16px Arial';
+                handCtx.fillText(debugText, handX * handCanvas.width, wristY * handCanvas.height);
             });
 
             // 使用左手上下移動選擇選項
@@ -226,7 +232,7 @@ hands.onResults((results) => {
             }
         }
     }
-
+    
     handCtx.restore();
 });
 
