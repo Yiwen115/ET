@@ -6,7 +6,12 @@ const gameState = {
     health: 100,
     currentChallenge: null,
     selectedOption: null,
-    canAnswer: false
+    canAnswer: false,
+    combo: 1,
+    challengesCompleted: 0,
+    timeLeft: 30,
+    timer: null,
+    achievements: []
 };
 
 // 遊戲配置
@@ -16,7 +21,10 @@ const config = {
     healthGainOnCorrect: 10,
     scorePerCorrect: 100,
     bonusScorePerSecond: 10,
-    challengeTime: 30
+    challengeTime: 30,
+    maxCombo: 5,
+    comboMultiplier: 1.5,
+    challengesPerLevel: 10
 };
 
 // 程式設計挑戰題庫
@@ -89,6 +97,31 @@ _____ (let i = 0; i < 5; i++) {
         correct: 0,
         hint: "這是最常見的迴圈結構",
         explanation: "for迴圈是最常用的迴圈結構之一，適用於已知迭代次數的情況。"
+    }
+];
+
+// 成就系統
+const achievements = [
+    {
+        id: 'first_correct',
+        title: '初次勝利',
+        description: '第一次回答正確',
+        icon: '🌟',
+        unlocked: false
+    },
+    {
+        id: 'perfect_combo',
+        title: '完美連擊',
+        description: '達成5連擊',
+        icon: '🔥',
+        unlocked: false
+    },
+    {
+        id: 'speed_master',
+        title: '閃電手',
+        description: '在5秒內回答正確',
+        icon: '⚡',
+        unlocked: false
     }
 ];
 
@@ -243,31 +276,144 @@ function selectOption(index) {
     gameState.selectedOption = index;
 }
 
+// 更新UI
+function updateUI() {
+    levelDisplay.textContent = gameState.level;
+    scoreDisplay.textContent = gameState.score;
+    document.querySelector('.health-fill').style.width = `${gameState.health}%`;
+    document.querySelector('.health-text').textContent = `${gameState.health}%`;
+    document.querySelector('.progress-fill').style.width = `${(gameState.challengesCompleted / config.challengesPerLevel) * 100}%`;
+    document.querySelector('.progress-text').textContent = `${gameState.challengesCompleted}/${config.challengesPerLevel}`;
+    document.querySelector('#combo-count').textContent = `x${gameState.combo}`;
+    document.querySelector('#challenge-number').textContent = gameState.challengesCompleted + 1;
+    document.querySelector('#time-left').textContent = gameState.timeLeft;
+    
+    // 根據連擊數更新連擊計數器的視覺效果
+    const comboElement = document.querySelector('.combo-meter');
+    comboElement.className = `combo-meter ${gameState.combo >= 3 ? 'high-combo' : ''}`;
+}
+
+// 顯示成就
+function showAchievement(achievement) {
+    const popup = document.getElementById('achievement-popup');
+    const text = popup.querySelector('.achievement-text');
+    text.textContent = `${achievement.title} - ${achievement.description}`;
+    popup.classList.add('show');
+    setTimeout(() => popup.classList.remove('show'), 3000);
+}
+
+// 檢查成就
+function checkAchievements(isCorrect, answerTime) {
+    if (isCorrect) {
+        // 檢查首次正確答案
+        const firstCorrect = achievements.find(a => a.id === 'first_correct');
+        if (!firstCorrect.unlocked) {
+            firstCorrect.unlocked = true;
+            showAchievement(firstCorrect);
+        }
+
+        // 檢查完美連擊
+        if (gameState.combo === 5) {
+            const perfectCombo = achievements.find(a => a.id === 'perfect_combo');
+            if (!perfectCombo.unlocked) {
+                perfectCombo.unlocked = true;
+                showAchievement(perfectCombo);
+            }
+        }
+
+        // 檢查快速回答
+        if (config.challengeTime - gameState.timeLeft <= 5) {
+            const speedMaster = achievements.find(a => a.id === 'speed_master');
+            if (!speedMaster.unlocked) {
+                speedMaster.unlocked = true;
+                showAchievement(speedMaster);
+            }
+        }
+    }
+}
+
+// 開始計時器
+function startTimer() {
+    gameState.timeLeft = config.challengeTime;
+    if (gameState.timer) clearInterval(gameState.timer);
+    
+    gameState.timer = setInterval(() => {
+        if (gameState.timeLeft > 0) {
+            gameState.timeLeft--;
+            updateUI();
+        } else {
+            checkAnswer(gameState.selectedOption, true);
+        }
+    }, 1000);
+}
+
 // 檢查答案
-function checkAnswer(selectedIndex) {
+function checkAnswer(selectedIndex, timeOut = false) {
     if (!gameState.canAnswer) return;
 
     gameState.canAnswer = false;
-    const isCorrect = selectedIndex === gameState.currentChallenge.correct;
+    clearInterval(gameState.timer);
+    const isCorrect = !timeOut && selectedIndex === gameState.currentChallenge.correct;
 
     if (isCorrect) {
-        gameState.score += config.scorePerCorrect;
+        // 計算分數（包含連擊加成）
+        const timeBonus = gameState.timeLeft * config.bonusScorePerSecond;
+        const comboMultiplier = Math.min(gameState.combo, config.maxCombo) * config.comboMultiplier;
+        const totalScore = Math.floor((config.scorePerCorrect + timeBonus) * comboMultiplier);
+        
+        gameState.score += totalScore;
         gameState.health = Math.min(config.maxHealth, gameState.health + config.healthGainOnCorrect);
+        gameState.combo++;
         showFeedback(true, gameState.currentChallenge.explanation);
+        
+        // 顯示分數動畫
+        const scorePopup = document.createElement('div');
+        scorePopup.className = 'score-popup animate__animated animate__fadeOutUp';
+        scorePopup.textContent = `+${totalScore}`;
+        document.querySelector('.score-display').appendChild(scorePopup);
+        setTimeout(() => scorePopup.remove(), 1000);
     } else {
         gameState.health = Math.max(0, gameState.health - config.healthLossOnWrong);
-        showFeedback(false, gameState.currentChallenge.explanation);
+        gameState.combo = 1;
+        showFeedback(false, timeOut ? "時間到！" : gameState.currentChallenge.explanation);
     }
 
+    checkAchievements(isCorrect, config.challengeTime - gameState.timeLeft);
     updateUI();
 
     setTimeout(() => {
         if (gameState.health <= 0) {
             endGame();
         } else {
-            nextChallenge();
+            gameState.challengesCompleted++;
+            if (gameState.challengesCompleted >= config.challengesPerLevel) {
+                levelUp();
+            } else {
+                nextChallenge();
+            }
         }
     }, 2000);
+}
+
+// 升級
+function levelUp() {
+    gameState.level++;
+    gameState.challengesCompleted = 0;
+    gameState.health = config.maxHealth;
+    
+    const levelUpOverlay = document.createElement('div');
+    levelUpOverlay.className = 'level-up-overlay animate__animated animate__fadeIn';
+    levelUpOverlay.innerHTML = `
+        <div class="level-up-content">
+            <h2>Level Up! 🎉</h2>
+            <p>你已經升到 Level ${gameState.level}</p>
+            <button onclick="this.parentElement.parentElement.remove(); nextChallenge();" class="game-button">
+                <span class="button-text">繼續挑戰</span>
+                <span class="button-icon">➡️</span>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(levelUpOverlay);
 }
 
 // 顯示反饋
@@ -276,23 +422,25 @@ function showFeedback(isCorrect, explanation) {
     option.classList.add(isCorrect ? 'correct' : 'wrong');
     
     const feedback = document.createElement('div');
-    feedback.className = `feedback ${isCorrect ? 'correct' : 'wrong'}`;
-    feedback.textContent = isCorrect ? '正確！' : '錯誤！';
-    feedback.innerHTML += `<p class="explanation">${explanation}</p>`;
+    feedback.className = `feedback ${isCorrect ? 'correct' : 'wrong'} animate__animated animate__fadeIn`;
+    feedback.innerHTML = `
+        <div class="feedback-header">
+            <span class="feedback-icon">${isCorrect ? '✅' : '❌'}</span>
+            <span class="feedback-result">${isCorrect ? '正確！' : '錯誤！'}</span>
+        </div>
+        <p class="explanation">${explanation}</p>
+    `;
     
     document.querySelector('.challenge-container').appendChild(feedback);
     
     setTimeout(() => {
-        feedback.remove();
-        option.classList.remove('correct', 'wrong');
-    }, 1900);
-}
-
-// 更新UI
-function updateUI() {
-    levelDisplay.textContent = gameState.level;
-    scoreDisplay.textContent = gameState.score;
-    healthBar.style.width = `${gameState.health}%`;
+        feedback.classList.remove('animate__fadeIn');
+        feedback.classList.add('animate__fadeOut');
+        setTimeout(() => {
+            feedback.remove();
+            option.classList.remove('correct', 'wrong');
+        }, 500);
+    }, 1500);
 }
 
 // 下一個挑戰
@@ -311,7 +459,13 @@ function nextChallenge() {
     const randomIndex = Math.floor(Math.random() * availableChallenges.length);
     gameState.currentChallenge = availableChallenges[randomIndex];
     
+    // 使用 highlight.js 美化程式碼
     challengeCode.textContent = gameState.currentChallenge.code;
+    hljs.highlightElement(challengeCode);
+    
+    // 更新提示
+    document.getElementById('challenge-hint').textContent = gameState.currentChallenge.hint;
+    
     options.forEach((option, index) => {
         option.querySelector('.option-text').textContent = gameState.currentChallenge.options[index];
     });
@@ -319,6 +473,9 @@ function nextChallenge() {
     gameState.selectedOption = null;
     gameState.canAnswer = true;
     options.forEach(option => option.classList.remove('selected'));
+    
+    startTimer();
+    updateUI();
 }
 
 // 開始遊戲
@@ -327,6 +484,8 @@ function startGame() {
     gameState.level = 1;
     gameState.score = 0;
     gameState.health = config.maxHealth;
+    gameState.combo = 1;
+    gameState.challengesCompleted = 0;
     
     tutorial.style.display = 'none';
     updateUI();
@@ -338,40 +497,110 @@ function pauseGame() {
     if (!gameState.isPlaying) return;
     
     gameState.isPlaying = false;
-    // 顯示暫停選單
-    const pauseMenu = document.createElement('div');
-    pauseMenu.className = 'pause-menu';
-    pauseMenu.innerHTML = `
-        <div class="pause-content">
-            <h2>遊戲暫停</h2>
-            <button onclick="resumeGame()">繼續遊戲</button>
-            <button onclick="location.reload()">重新開始</button>
-        </div>
-    `;
-    document.body.appendChild(pauseMenu);
+    clearInterval(gameState.timer);
+    document.getElementById('pause-menu').classList.remove('hide');
 }
 
 // 繼續遊戲
 function resumeGame() {
     gameState.isPlaying = true;
-    const pauseMenu = document.querySelector('.pause-menu');
-    if (pauseMenu) {
-        pauseMenu.remove();
-    }
+    document.getElementById('pause-menu').classList.add('hide');
+    startTimer();
+}
+
+// 重新開始遊戲
+function restartGame() {
+    location.reload();
+}
+
+// 顯示教學
+function showTutorial() {
+    document.getElementById('pause-menu').classList.add('hide');
+    tutorial.style.display = 'flex';
 }
 
 // 結束遊戲
 function endGame() {
     gameState.isPlaying = false;
-    alert(`遊戲結束！\n最終得分：${gameState.score}\n達到等級：${gameState.level}`);
-    location.reload();
+    clearInterval(gameState.timer);
+    
+    const gameOverOverlay = document.createElement('div');
+    gameOverOverlay.className = 'game-over-overlay animate__animated animate__fadeIn';
+    gameOverOverlay.innerHTML = `
+        <div class="game-over-content">
+            <h2>遊戲結束</h2>
+            <div class="final-stats">
+                <div class="stat-item">
+                    <span class="stat-label">最終得分</span>
+                    <span class="stat-value">${gameState.score}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">達到等級</span>
+                    <span class="stat-value">${gameState.level}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">完成挑戰</span>
+                    <span class="stat-value">${gameState.challengesCompleted}</span>
+                </div>
+            </div>
+            <div class="achievements-summary">
+                <h3>解鎖成就</h3>
+                <div class="achievements-list">
+                    ${achievements.filter(a => a.unlocked).map(a => `
+                        <div class="achievement-item">
+                            <span class="achievement-icon">${a.icon}</span>
+                            <span class="achievement-title">${a.title}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <button onclick="location.reload()" class="game-button">
+                <span class="button-text">重新挑戰</span>
+                <span class="button-icon">🔄</span>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(gameOverOverlay);
 }
 
 // 完成遊戲
 function completeGame() {
     gameState.isPlaying = false;
-    alert(`恭喜完成所有關卡！\n最終得分：${gameState.score}`);
-    location.reload();
+    clearInterval(gameState.timer);
+    
+    const gameCompleteOverlay = document.createElement('div');
+    gameCompleteOverlay.className = 'game-complete-overlay animate__animated animate__fadeIn';
+    gameCompleteOverlay.innerHTML = `
+        <div class="game-complete-content">
+            <h2>恭喜完成！🎉</h2>
+            <div class="final-stats">
+                <div class="stat-item">
+                    <span class="stat-label">最終得分</span>
+                    <span class="stat-value">${gameState.score}</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">完成時間</span>
+                    <span class="stat-value">${Math.floor((config.challengeTime - gameState.timeLeft) / 60)}:${((config.challengeTime - gameState.timeLeft) % 60).toString().padStart(2, '0')}</span>
+                </div>
+            </div>
+            <div class="achievements-summary">
+                <h3>解鎖成就</h3>
+                <div class="achievements-list">
+                    ${achievements.filter(a => a.unlocked).map(a => `
+                        <div class="achievement-item">
+                            <span class="achievement-icon">${a.icon}</span>
+                            <span class="achievement-title">${a.title}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+            <button onclick="location.reload()" class="game-button">
+                <span class="button-text">再玩一次</span>
+                <span class="button-icon">🎮</span>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(gameCompleteOverlay);
 }
 
 // 事件監聽
