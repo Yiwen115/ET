@@ -1,24 +1,28 @@
 // 遊戲狀態
 const gameState = {
     isPlaying: false,
-    level: 1,
-    score: 0,
     health: 100,
+    codeQuality: 0,
+    streak: 0,
     currentChallenge: null,
     selectedOption: null,
     canAnswer: false,
     lastGesture: null,
-    gestureTimeout: null
+    gestureTimeout: null,
+    timer: null,
+    timeLeft: 0
 };
 
 // 遊戲配置
 const config = {
     maxHealth: 100,
-    healthLossOnWrong: 20,
-    healthGainOnCorrect: 10,
-    scorePerCorrect: 100,
-    bonusScorePerSecond: 10,
-    challengeTime: 30
+    healthLossOnWrong: 25,
+    healthLossPerSecond: 0.5,
+    healthGainOnCorrect: 15,
+    streakBonus: 5,
+    maxStreak: 5,
+    challengeTime: 20,
+    minChallengeTime: 10
 };
 
 // 程式設計挑戰題庫
@@ -31,7 +35,9 @@ const challenges = [
 }`,
         options: [
             'console.log("Hello, World!");',
-            'print("Hello, World!");'
+            'print("Hello, World!");',
+            'echo("Hello, World!");',
+            'System.out.println("Hello, World!");'
         ],
         correct: 0,
         hint: "JavaScript中使用console.log()來輸出訊息",
@@ -43,7 +49,9 @@ const challenges = [
 ___ name = "Alice";`,
         options: [
             'var',
-            'string'
+            'string',
+            'dim',
+            'def'
         ],
         correct: 0,
         hint: "JavaScript中使用var、let或const來宣告變數",
@@ -57,7 +65,9 @@ const numbers = [1, 2, 3, 4, 5];
 console.log(_________);`,
         options: [
             'numbers.length',
-            'numbers.size()'
+            'numbers.size()',
+            'numbers.count',
+            'len(numbers)'
         ],
         correct: 0,
         hint: "JavaScript陣列有一個屬性可以獲取長度",
@@ -72,7 +82,9 @@ if (___) {
 }`,
         options: [
             'age >= 18',
-            'age => 18'
+            'age => 18',
+            'age equals 18',
+            'age.isAdult()'
         ],
         correct: 0,
         hint: "使用正確的比較運算符",
@@ -86,7 +98,9 @@ _____ (let i = 0; i < 5; i++) {
 }`,
         options: [
             'for',
-            'while'
+            'while',
+            'loop',
+            'repeat'
         ],
         correct: 0,
         hint: "這是最常見的迴圈結構",
@@ -201,21 +215,36 @@ hands.onResults((results) => {
             let currentGesture = null;
 
             hands.forEach((hand, index) => {
-                const handType = hand.label.toLowerCase();
+                // 因為攝像頭是鏡像的，所以我們需要反轉手的類型
+                const handType = hand.label.toLowerCase() === 'left' ? 'right' : 'left';
                 const landmarks = results.multiHandLandmarks[index];
-                const wristY = landmarks[0].y;
-                const indexFingerY = landmarks[8].y;
-                const indexFingerX = landmarks[8].x;
-
-                // 檢測手勢方向
-                if (indexFingerY < wristY - 0.15) { // 向上
-                    currentGesture = 0;
-                } else if (indexFingerX > wristX + 0.15) { // 向右
-                    currentGesture = 1;
-                } else if (indexFingerY > wristY + 0.15) { // 向下
-                    currentGesture = 2;
-                } else if (indexFingerX < wristX - 0.15) { // 向左
-                    currentGesture = 3;
+                
+                // 獲取手腕和食指的座標
+                const wrist = landmarks[0];
+                const indexFinger = landmarks[8];
+                
+                // 計算相對位移
+                const deltaY = indexFinger.y - wrist.y;
+                const deltaX = indexFinger.x - wrist.x;
+                
+                // 設定手勢判定的閾值
+                const threshold = 0.15;
+                
+                // 判斷手勢方向
+                if (Math.abs(deltaY) > Math.abs(deltaX)) {
+                    // 垂直移動
+                    if (deltaY < -threshold) {
+                        currentGesture = 0; // 上
+                    } else if (deltaY > threshold) {
+                        currentGesture = 2; // 下
+                    }
+                } else {
+                    // 水平移動
+                    if (deltaX < -threshold) {
+                        currentGesture = 3; // 左
+                    } else if (deltaX > threshold) {
+                        currentGesture = 1; // 右
+                    }
                 }
 
                 // 如果是右手且做出選擇手勢，確認答案
@@ -259,16 +288,27 @@ function selectOption(index) {
 // 檢查答案
 function checkAnswer(selectedIndex) {
     if (!gameState.canAnswer) return;
-
+    
+    clearInterval(gameState.timer);
     gameState.canAnswer = false;
     const isCorrect = selectedIndex === gameState.currentChallenge.correct;
 
     if (isCorrect) {
-        gameState.score += config.scorePerCorrect;
-        gameState.health = Math.min(config.maxHealth, gameState.health + config.healthGainOnCorrect);
-        showFeedback(true, gameState.currentChallenge.explanation);
+        // 計算獎勵
+        const timeBonus = Math.floor(gameState.timeLeft / 2);
+        gameState.streak = Math.min(config.maxStreak, gameState.streak + 1);
+        const streakBonus = (gameState.streak - 1) * config.streakBonus;
+        
+        // 更新生命值和程式碼品質
+        gameState.health = Math.min(config.maxHealth, 
+            gameState.health + config.healthGainOnCorrect + streakBonus);
+        gameState.codeQuality += 10 + timeBonus + streakBonus;
+        
+        showFeedback(true, gameState.currentChallenge.explanation, 
+            `+${timeBonus} 時間獎勵\n+${streakBonus} 連擊獎勵！`);
     } else {
         gameState.health = Math.max(0, gameState.health - config.healthLossOnWrong);
+        gameState.streak = 0;
         showFeedback(false, gameState.currentChallenge.explanation);
     }
 
@@ -279,25 +319,30 @@ function checkAnswer(selectedIndex) {
             endGame();
         } else {
             nextChallenge();
+            startTimer();
         }
     }, 2000);
 }
 
 // 顯示反饋
-function showFeedback(isCorrect, explanation) {
+function showFeedback(isCorrect, explanation, bonus = '') {
     const option = options[gameState.selectedOption];
-    option.classList.add(isCorrect ? 'correct' : 'wrong');
+    option?.classList.add(isCorrect ? 'correct' : 'wrong');
     
     const feedback = document.createElement('div');
     feedback.className = `feedback ${isCorrect ? 'correct' : 'wrong'}`;
-    feedback.textContent = isCorrect ? '正確！' : '錯誤！';
-    feedback.innerHTML += `<p class="explanation">${explanation}</p>`;
+    feedback.innerHTML = `
+        <div class="feedback-title">${isCorrect ? '正確！' : '錯誤！'}</div>
+        <p class="explanation">${explanation}</p>
+        ${bonus ? `<div class="bonus-info">${bonus}</div>` : ''}
+        ${isCorrect ? `<div class="streak-info">連擊：${gameState.streak}</div>` : ''}
+    `;
     
     document.querySelector('.challenge-container').appendChild(feedback);
     
     setTimeout(() => {
         feedback.remove();
-        option.classList.remove('correct', 'wrong');
+        option?.classList.remove('correct', 'wrong');
     }, 1900);
 }
 
@@ -306,6 +351,8 @@ function updateUI() {
     levelDisplay.textContent = gameState.level;
     scoreDisplay.textContent = gameState.score;
     healthBar.style.width = `${gameState.health}%`;
+    document.querySelector('.code-quality').textContent = gameState.codeQuality;
+    document.querySelector('.streak-count').textContent = gameState.streak;
 }
 
 // 更新挑戰題目
@@ -341,13 +388,45 @@ function nextChallenge() {
 // 開始遊戲
 function startGame() {
     gameState.isPlaying = true;
-    gameState.level = 1;
-    gameState.score = 0;
     gameState.health = config.maxHealth;
+    gameState.codeQuality = 0;
+    gameState.streak = 0;
     
     tutorial.style.display = 'none';
     updateUI();
     nextChallenge();
+    startTimer();
+}
+
+// 開始計時器
+function startTimer() {
+    gameState.timeLeft = config.challengeTime;
+    updateTimerDisplay();
+    
+    gameState.timer = setInterval(() => {
+        gameState.timeLeft--;
+        gameState.health = Math.max(0, gameState.health - config.healthLossPerSecond);
+        
+        updateTimerDisplay();
+        updateUI();
+        
+        if (gameState.timeLeft <= 0 || gameState.health <= 0) {
+            if (gameState.health <= 0) {
+                endGame();
+            } else {
+                checkAnswer(-1); // 時間到，視為答錯
+            }
+        }
+    }, 1000);
+}
+
+// 更新計時器顯示
+function updateTimerDisplay() {
+    const timerElement = document.querySelector('.timer-value');
+    if (timerElement) {
+        timerElement.textContent = gameState.timeLeft;
+        timerElement.style.color = gameState.timeLeft <= 5 ? 'var(--error-color)' : 'var(--text-color)';
+    }
 }
 
 // 暫停遊戲
@@ -380,8 +459,22 @@ function resumeGame() {
 // 結束遊戲
 function endGame() {
     gameState.isPlaying = false;
-    alert(`遊戲結束！\n最終得分：${gameState.score}\n達到等級：${gameState.level}`);
-    location.reload();
+    clearInterval(gameState.timer);
+    
+    const gameOverScreen = document.createElement('div');
+    gameOverScreen.className = 'game-over-screen';
+    gameOverScreen.innerHTML = `
+        <div class="game-over-content">
+            <h2>遊戲結束</h2>
+            <div class="final-stats">
+                <p>程式碼品質分數：${gameState.codeQuality}</p>
+                <p>最高連擊數：${gameState.streak}</p>
+            </div>
+            <button onclick="location.reload()" class="restart-button">重新開始</button>
+        </div>
+    `;
+    
+    document.body.appendChild(gameOverScreen);
 }
 
 // 完成遊戲
