@@ -1,61 +1,109 @@
 // 遊戲狀態
 const gameState = {
     isPlaying: false,
+    level: 1,
     score: 0,
+    health: 100,
     currentChallenge: null,
     selectedOption: null,
-    canAnswer: false,
-    cooldown: false
+    canAnswer: false
+};
+
+// 遊戲配置
+const config = {
+    maxHealth: 100,
+    healthLossOnWrong: 20,
+    healthGainOnCorrect: 10,
+    scorePerCorrect: 100,
+    bonusScorePerSecond: 10,
+    challengeTime: 30
 };
 
 // 程式設計挑戰題庫
 const challenges = [
     {
-        question: "在JavaScript中，如何輸出'Hello World'?",
+        level: 1,
+        code: `function sayHello() {
+    // 填入正確的程式碼
+    ___________
+}`,
         options: [
-            'console.log("Hello World")',
-            'print("Hello World")'
+            'console.log("Hello, World!");',
+            'print("Hello, World!");'
         ],
         correct: 0,
-        explanation: "console.log() 是 JavaScript 中用於輸出訊息的標準方法"
+        hint: "JavaScript中使用console.log()來輸出訊息",
+        explanation: "console.log()是JavaScript中用於在控制台輸出訊息的標準方法。"
     },
     {
-        question: "如何宣告一個變數?",
+        level: 1,
+        code: `// 宣告一個變數
+___ name = "Alice";`,
         options: [
-            'let myVar = 10',
-            'variable myVar = 10'
+            'var',
+            'string'
         ],
         correct: 0,
-        explanation: "let 是 JavaScript 中宣告變數的關鍵字"
+        hint: "JavaScript中使用var、let或const來宣告變數",
+        explanation: "var是JavaScript中宣告變數的其中一種方式。"
     },
     {
-        question: "如何建立一個陣列?",
+        level: 2,
+        code: `// 創建一個陣列
+const numbers = [1, 2, 3, 4, 5];
+// 如何取得陣列的長度？
+console.log(_________);`,
         options: [
-            'let arr = [1, 2, 3]',
-            'array(1, 2, 3)'
+            'numbers.length',
+            'numbers.size()'
         ],
         correct: 0,
-        explanation: "使用方括號 [] 是在 JavaScript 中建立陣列的標準方式"
+        hint: "JavaScript陣列有一個屬性可以獲取長度",
+        explanation: "length是JavaScript陣列的屬性，用於獲取陣列的長度。"
     },
     {
-        question: "如何寫一個 if 條件判斷?",
+        level: 2,
+        code: `// 條件判斷
+let age = 18;
+if (___) {
+    console.log("成年");
+}`,
         options: [
-            'if (x > 0) { }',
-            'when (x > 0) { }'
+            'age >= 18',
+            'age => 18'
         ],
         correct: 0,
-        explanation: "if 是 JavaScript 中進行條件判斷的關鍵字"
+        hint: "使用正確的比較運算符",
+        explanation: ">= 是「大於等於」的比較運算符。"
     },
     {
-        question: "如何定義一個函數?",
+        level: 3,
+        code: `// 迴圈結構
+_____ (let i = 0; i < 5; i++) {
+    console.log(i);
+}`,
         options: [
-            'function add(a, b) { }',
-            'def add(a, b) { }'
+            'for',
+            'while'
         ],
         correct: 0,
-        explanation: "function 是 JavaScript 中定義函數的關鍵字"
+        hint: "這是最常見的迴圈結構",
+        explanation: "for迴圈是最常用的迴圈結構之一，適用於已知迭代次數的情況。"
     }
 ];
+
+// DOM 元素
+const videoElement = document.getElementById('input-video');
+const handCanvas = document.getElementById('hand-canvas');
+const gameCanvas = document.getElementById('game-canvas');
+const challengeCode = document.getElementById('challenge-code');
+const options = document.querySelectorAll('.option');
+const levelDisplay = document.getElementById('level');
+const scoreDisplay = document.getElementById('score');
+const healthBar = document.querySelector('.health-fill');
+const loadingScreen = document.getElementById('loading-screen');
+const tutorial = document.getElementById('tutorial');
+const startGameButton = document.getElementById('start-game');
 
 // 初始化手部檢測
 const hands = new Hands({
@@ -78,15 +126,13 @@ async function initializeCamera() {
             video: {
                 width: 640,
                 height: 480,
-                facingMode: "user"
+                facingMode: 'user'
             }
         });
 
-        const videoElement = document.getElementById('input-video');
         videoElement.srcObject = stream;
         await videoElement.play();
 
-        const handCanvas = document.getElementById('hand-canvas');
         handCanvas.width = videoElement.videoWidth;
         handCanvas.height = videoElement.videoHeight;
 
@@ -99,163 +145,250 @@ async function initializeCamera() {
         });
 
         await camera.start();
+        loadingScreen.style.display = 'none';
+        tutorial.style.display = 'flex';
+
     } catch (error) {
         console.error('相機初始化錯誤:', error);
-        showFeedback('錯誤', '請確保已授予相機權限並重新整理頁面。', 'wrong');
+        alert('無法訪問相機，請確保已授予權限並重新整理頁面');
     }
 }
 
-// 處理手部檢測結果
+// 手勢處理
 hands.onResults((results) => {
-    const handCanvas = document.getElementById('hand-canvas');
     const handCtx = handCanvas.getContext('2d');
     
-    handCtx.save();
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+    handCtx.save();
+    handCtx.scale(-1, 1);
+    handCtx.translate(-handCanvas.width, 0);
 
-    // 繪製攝像頭畫面
-    handCtx.drawImage(
-        document.getElementById('input-video'),
-        0,
-        0,
-        handCanvas.width,
-        handCanvas.height
-    );
+    // 繪製視訊
+    handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
 
     if (results.multiHandLandmarks) {
-        results.multiHandLandmarks.forEach((landmarks, index) => {
-            // 繪製手部標記
+        // 繪製手部標記
+        for (const landmarks of results.multiHandLandmarks) {
             drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, {
                 color: '#00FF00',
-                lineWidth: 5
+                lineWidth: 2
             });
             drawLandmarks(handCtx, landmarks, {
                 color: '#FF0000',
-                lineWidth: 2,
-                radius: 4
+                lineWidth: 1,
+                radius: 3
             });
+        }
 
-            // 手勢控制
-            if (gameState.isPlaying && gameState.canAnswer && !gameState.cooldown) {
-                const handX = landmarks[0].x;
-                const handY = landmarks[0].y;
+        // 遊戲控制邏輯
+        if (gameState.isPlaying && gameState.canAnswer) {
+            const hands = results.multiHandedness;
+            let leftHandRaised = false;
+            let rightHandRaised = false;
+            let leftHandY = null;
+            let rightHandY = null;
+
+            hands.forEach((hand, index) => {
+                const handType = hand.label.toLowerCase();
+                const landmarks = results.multiHandLandmarks[index];
+                const wristY = landmarks[0].y;
                 const indexFingerY = landmarks[8].y;
 
-                // 左手選擇選項
-                if (handX < 0.5 && indexFingerY < handY - 0.1) {
-                    const selectedIndex = Math.floor(handY * 2);
-                    selectOption(selectedIndex);
-                }
-                // 右手確認答案
-                else if (handX > 0.5 && indexFingerY < handY - 0.1) {
-                    if (gameState.selectedOption !== null) {
-                        checkAnswer();
+                if (handType === 'left') {
+                    leftHandY = wristY;
+                    if (indexFingerY < wristY - 0.1) {
+                        leftHandRaised = true;
+                    }
+                } else if (handType === 'right') {
+                    rightHandY = wristY;
+                    if (indexFingerY < wristY - 0.1) {
+                        rightHandRaised = true;
                     }
                 }
+            });
+
+            // 使用左手上下移動選擇選項
+            if (leftHandY !== null) {
+                const normalizedY = leftHandY * handCanvas.height;
+                const optionHeight = handCanvas.height / 2;
+                const selectedIndex = Math.floor(normalizedY / optionHeight);
+                selectOption(Math.min(selectedIndex, 1));
             }
-        });
+
+            // 使用右手確認選擇
+            if (rightHandRaised && gameState.selectedOption !== null) {
+                checkAnswer(gameState.selectedOption);
+            }
+
+            // 雙手舉起暫停遊戲
+            if (leftHandRaised && rightHandRaised) {
+                pauseGame();
+            }
+        }
     }
 
     handCtx.restore();
 });
 
-// 開始遊戲
-function startGame() {
-    // 移除開始按鈕
-    document.querySelector('.start-button').style.display = 'none';
-
-    // 創建遊戲容器
-    const container = document.createElement('div');
-    container.className = 'game-container';
-    container.innerHTML = `
-        <div class="question-container">
-            <h2 id="question"></h2>
-            <div class="options"></div>
-        </div>
-    `;
-    document.body.appendChild(container);
-
-    gameState.isPlaying = true;
-    gameState.score = 0;
-    document.getElementById('score').textContent = '0';
-    
-    nextQuestion();
-}
-
 // 選擇選項
 function selectOption(index) {
-    if (!gameState.canAnswer || gameState.cooldown) return;
-    
-    const options = document.querySelectorAll('.option');
-    if (index >= 0 && index < options.length) {
-        options.forEach(option => option.classList.remove('selected'));
-        options[index].classList.add('selected');
-        gameState.selectedOption = index;
-    }
-}
-
-// 顯示反饋
-function showFeedback(title, message, type) {
-    const existingFeedback = document.querySelector('.feedback');
-    if (existingFeedback) {
-        existingFeedback.remove();
-    }
-
-    const feedback = document.createElement('div');
-    feedback.className = `feedback ${type}`;
-    feedback.innerHTML = `
-        <h3>${title}</h3>
-        <p>${message}</p>
-    `;
-    document.body.appendChild(feedback);
-
-    // 顯示動畫
-    setTimeout(() => feedback.classList.add('show'), 10);
-    setTimeout(() => {
-        feedback.classList.remove('show');
-        setTimeout(() => feedback.remove(), 300);
-    }, 2000);
+    options.forEach(option => option.classList.remove('selected'));
+    options[index].classList.add('selected');
+    gameState.selectedOption = index;
 }
 
 // 檢查答案
-function checkAnswer() {
-    if (!gameState.canAnswer || gameState.cooldown) return;
-    
-    gameState.cooldown = true;
+function checkAnswer(selectedIndex) {
+    if (!gameState.canAnswer) return;
+
     gameState.canAnswer = false;
-    const isCorrect = gameState.selectedOption === gameState.currentChallenge.correct;
-    
+    const isCorrect = selectedIndex === gameState.currentChallenge.correct;
+
     if (isCorrect) {
-        gameState.score += 100;
-        document.getElementById('score').textContent = gameState.score;
-        showFeedback('答對了！', gameState.currentChallenge.explanation, 'correct');
+        gameState.score += config.scorePerCorrect;
+        gameState.health = Math.min(config.maxHealth, gameState.health + config.healthGainOnCorrect);
+        showFeedback(true, gameState.currentChallenge.explanation);
     } else {
-        showFeedback('答錯了！', gameState.currentChallenge.explanation, 'wrong');
+        gameState.health = Math.max(0, gameState.health - config.healthLossOnWrong);
+        showFeedback(false, gameState.currentChallenge.explanation);
     }
 
+    updateUI();
+
     setTimeout(() => {
-        gameState.cooldown = false;
-        nextQuestion();
+        if (gameState.health <= 0) {
+            endGame();
+        } else {
+            nextChallenge();
+        }
     }, 2000);
 }
 
-// 下一題
-function nextQuestion() {
-    const randomIndex = Math.floor(Math.random() * challenges.length);
-    gameState.currentChallenge = challenges[randomIndex];
+// 顯示反饋
+function showFeedback(isCorrect, explanation) {
+    const option = options[gameState.selectedOption];
+    option.classList.add(isCorrect ? 'correct' : 'wrong');
     
-    document.getElementById('question').textContent = gameState.currentChallenge.question;
+    const feedback = document.createElement('div');
+    feedback.className = `feedback ${isCorrect ? 'correct' : 'wrong'}`;
+    feedback.textContent = isCorrect ? '正確！' : '錯誤！';
+    feedback.innerHTML += `<p class="explanation">${explanation}</p>`;
     
-    const optionsContainer = document.querySelector('.options');
-    optionsContainer.innerHTML = gameState.currentChallenge.options.map((option, index) => `
-        <div class="option" onclick="selectOption(${index})">
-            ${option}
-        </div>
-    `).join('');
+    document.querySelector('.challenge-container').appendChild(feedback);
+    
+    setTimeout(() => {
+        feedback.remove();
+        option.classList.remove('correct', 'wrong');
+    }, 1900);
+}
+
+// 更新UI
+function updateUI() {
+    levelDisplay.textContent = gameState.level;
+    scoreDisplay.textContent = gameState.score;
+    healthBar.style.width = `${gameState.health}%`;
+}
+
+// 下一個挑戰
+function nextChallenge() {
+    const levelChallenges = challenges.filter(c => c.level === gameState.level);
+    
+    if (levelChallenges.length === 0) {
+        gameState.level++;
+        if (gameState.level > 3) {
+            completeGame();
+            return;
+        }
+    }
+    
+    const availableChallenges = challenges.filter(c => c.level === gameState.level);
+    const randomIndex = Math.floor(Math.random() * availableChallenges.length);
+    gameState.currentChallenge = availableChallenges[randomIndex];
+    
+    challengeCode.textContent = gameState.currentChallenge.code;
+    options.forEach((option, index) => {
+        option.querySelector('.option-text').textContent = gameState.currentChallenge.options[index];
+    });
     
     gameState.selectedOption = null;
     gameState.canAnswer = true;
+    options.forEach(option => option.classList.remove('selected'));
 }
 
-// 初始化遊戲
-document.addEventListener('DOMContentLoaded', initializeCamera); 
+// 開始遊戲
+function startGame() {
+    gameState.isPlaying = true;
+    gameState.level = 1;
+    gameState.score = 0;
+    gameState.health = config.maxHealth;
+    
+    tutorial.style.display = 'none';
+    updateUI();
+    nextChallenge();
+}
+
+// 暫停遊戲
+function pauseGame() {
+    if (!gameState.isPlaying) return;
+    
+    gameState.isPlaying = false;
+    // 顯示暫停選單
+    const pauseMenu = document.createElement('div');
+    pauseMenu.className = 'pause-menu';
+    pauseMenu.innerHTML = `
+        <div class="pause-content">
+            <h2>遊戲暫停</h2>
+            <button onclick="resumeGame()">繼續遊戲</button>
+            <button onclick="location.reload()">重新開始</button>
+        </div>
+    `;
+    document.body.appendChild(pauseMenu);
+}
+
+// 繼續遊戲
+function resumeGame() {
+    gameState.isPlaying = true;
+    const pauseMenu = document.querySelector('.pause-menu');
+    if (pauseMenu) {
+        pauseMenu.remove();
+    }
+}
+
+// 結束遊戲
+function endGame() {
+    gameState.isPlaying = false;
+    alert(`遊戲結束！\n最終得分：${gameState.score}\n達到等級：${gameState.level}`);
+    location.reload();
+}
+
+// 完成遊戲
+function completeGame() {
+    gameState.isPlaying = false;
+    alert(`恭喜完成所有關卡！\n最終得分：${gameState.score}`);
+    location.reload();
+}
+
+// 事件監聽
+startGameButton.addEventListener('click', startGame);
+window.addEventListener('load', initializeCamera);
+
+// 添加鍵盤控制（用於測試）
+document.addEventListener('keydown', (e) => {
+    if (!gameState.isPlaying) return;
+    
+    switch (e.key) {
+        case 'ArrowUp':
+        case 'ArrowDown':
+            const newIndex = e.key === 'ArrowUp' ? 0 : 1;
+            selectOption(newIndex);
+            break;
+        case 'Enter':
+            if (gameState.selectedOption !== null) {
+                checkAnswer(gameState.selectedOption);
+            }
+            break;
+        case 'Escape':
+            pauseGame();
+            break;
+    }
+});
