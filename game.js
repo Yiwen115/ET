@@ -31,7 +31,7 @@ let gameState = {
     targets: [],
     currentQuestion: null,
     canAnswer: false,
-    answerDelay: 1000 // 答題延遲（毫秒）
+    answerDelay: 1500
 };
 
 // 遊戲常數
@@ -75,28 +75,28 @@ let particles = [];
 // 題目資料庫
 const questions = [
     {
-        question: "哪個是正確的程式設計概念？",
-        options: ["程式越長越好", "重複使用程式碼"],
+        question: "哪個是好的程式設計習慣？",
+        options: ["不寫註解", "寫清楚的註解"],
         correct: 1
     },
     {
-        question: "哪個對學習比較有幫助？",
-        options: ["死記硬背", "理解並實作"],
+        question: "以下哪個是較好的變數命名？",
+        options: ["x", "userAge"],
         correct: 1
     },
     {
-        question: "哪個是好的學習習慣？",
-        options: ["考前臨時抱佛腳", "定期複習"],
+        question: "哪個是較好的學習方式？",
+        options: ["一次學很多", "循序漸進"],
         correct: 1
     },
     {
-        question: "哪個是較好的學習方法？",
-        options: ["被動接收", "主動思考"],
+        question: "程式發生錯誤時應該？",
+        options: ["直接重寫", "檢查除錯"],
         correct: 1
     },
     {
-        question: "寫程式時應該？",
-        options: ["能跑就好", "注重可讀性"],
+        question: "寫程式時應該注意？",
+        options: ["趕快寫完", "程式品質"],
         correct: 1
     }
 ];
@@ -217,12 +217,12 @@ function showQuestion() {
 
     // 更新顯示
     questionBox.querySelector('h2').textContent = gameState.currentQuestion.question;
-    optionLeft.textContent = gameState.currentQuestion.options[0];
-    optionRight.textContent = gameState.currentQuestion.options[1];
+    optionLeft.querySelector('.option-content').textContent = gameState.currentQuestion.options[0];
+    optionRight.querySelector('.option-content').textContent = gameState.currentQuestion.options[1];
 
     // 重置選項樣式
-    optionLeft.classList.remove('selected');
-    optionRight.classList.remove('selected');
+    optionLeft.className = 'option left';
+    optionRight.className = 'option right';
 
     // 延遲後允許回答
     gameState.canAnswer = false;
@@ -233,18 +233,20 @@ function showQuestion() {
 
 // 處理答案
 function handleAnswer(choice) {
-    if (!gameState.canAnswer) return;
+    if (!gameState.canAnswer || !gameState.isPlaying) return;
 
+    gameState.canAnswer = false;
     const isCorrect = choice === gameState.currentQuestion.correct;
+    const selectedOption = choice === 0 ? optionLeft : optionRight;
+
+    // 更新分數和視覺效果
     if (isCorrect) {
         gameState.score += 10;
-        scoreElement.textContent = `分數: ${gameState.score}`;
+        scoreElement.textContent = `得分：${gameState.score}`;
+        selectedOption.classList.add('correct');
+    } else {
+        selectedOption.classList.add('wrong');
     }
-
-    // 視覺反饋
-    const selectedOption = choice === 0 ? optionLeft : optionRight;
-    selectedOption.classList.add('selected');
-    selectedOption.style.background = isCorrect ? 'rgba(76, 175, 80, 0.3)' : 'rgba(244, 67, 54, 0.3)';
 
     // 延遲後顯示下一題
     setTimeout(() => {
@@ -254,8 +256,13 @@ function handleAnswer(choice) {
 
 // 手勢處理
 hands.onResults((results) => {
-    // 清除手部畫布
+    const handCtx = handCanvas.getContext('2d');
+    
+    // 清除畫布
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+    handCtx.save();
+    handCtx.scale(-1, 1);
+    handCtx.translate(-handCanvas.width, 0);
 
     // 繪製手部標記
     if (results.multiHandLandmarks) {
@@ -266,7 +273,8 @@ hands.onResults((results) => {
             });
             drawLandmarks(handCtx, landmarks, {
                 color: '#FF0000',
-                lineWidth: 1
+                lineWidth: 1,
+                radius: 3
             });
         }
 
@@ -275,10 +283,11 @@ hands.onResults((results) => {
             results.multiHandedness.forEach((hand, index) => {
                 const handType = hand.label.toLowerCase();
                 const landmarks = results.multiHandLandmarks[index];
-                const palmY = landmarks[0].y;
+                const wristY = landmarks[0].y;
+                const indexFingerY = landmarks[8].y;
 
-                // 檢測手是否舉起（y座標小於0.5）
-                if (palmY < 0.5) {
+                // 檢測手是否舉起（食指高於手腕）
+                if (indexFingerY < wristY - 0.1) {
                     if (handType === 'left') {
                         handleAnswer(0);
                     } else if (handType === 'right') {
@@ -288,6 +297,8 @@ hands.onResults((results) => {
             });
         }
     }
+    
+    handCtx.restore();
 });
 
 // 開始遊戲
@@ -301,10 +312,10 @@ function startGame() {
         targets: [],
         currentQuestion: null,
         canAnswer: false,
-        answerDelay: 1000
+        answerDelay: 1500
     };
     startButton.style.display = 'none';
-    scoreElement.textContent = '分數: 0';
+    scoreElement.textContent = '得分：0';
     instructions.classList.add('hide');
     showQuestion();
     gameLoop();
@@ -353,7 +364,7 @@ function gameLoop() {
             target.x + TARGET_SIZE/2, target.y + TARGET_SIZE/2, 
             (PLAYER_SIZE + TARGET_SIZE)/2)) {
             gameState.score += 1;
-            scoreElement.textContent = `分數: ${gameState.score}`;
+            scoreElement.textContent = `得分：${gameState.score}`;
             return false;
         }
 
