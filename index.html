@@ -15,7 +15,8 @@
                 <video id="input-video" playsinline></video>
                 <canvas id="hand-canvas"></canvas>
                 <div class="hand-guides">
-                    <div class="hand-guide right">右手：選擇和確認</div>
+                    <div class="hand-guide left">左手：選擇答案</div>
+                    <div class="hand-guide right">右手向上：確認</div>
                 </div>
             </div>
             <div class="player-stats">
@@ -50,6 +51,7 @@
                 <div class="options-container">
                     <!-- 選項將由 JavaScript 動態生成 -->
                 </div>
+                <div class="gesture-hint">等待手勢...</div>
             </div>
         </div>
     </div>
@@ -69,20 +71,20 @@
             <h2>歡迎來到程式碼生存戰</h2>
             <div class="tutorial-steps">
                 <div class="tutorial-step">
-                    <div class="step-icon">👋</div>
-                    <div class="step-text">使用右手指向不同方向來選擇答案</div>
+                    <div class="step-icon">👈</div>
+                    <div class="step-text">左手指向不同方向來選擇答案</div>
                 </div>
                 <div class="tutorial-step">
-                    <div class="step-icon">✨</div>
-                    <div class="step-text">保持手勢1.5秒來確認選擇</div>
+                    <div class="step-icon">👉</div>
+                    <div class="step-text">右手向上確認選擇</div>
+                </div>
+                <div class="tutorial-step">
+                    <div class="step-icon">🙌</div>
+                    <div class="step-text">雙手向下可暫停遊戲</div>
                 </div>
                 <div class="tutorial-step">
                     <div class="step-icon">⚡</div>
                     <div class="step-text">連續答對可以獲得額外獎勵</div>
-                </div>
-                <div class="tutorial-step">
-                    <div class="step-icon">❤️</div>
-                    <div class="step-text">注意生命值，回答錯誤或超時都會受傷</div>
                 </div>
             </div>
             <button id="start-game" class="game-button">開始遊戲</button>
