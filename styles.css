@@ -96,7 +96,7 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transform: scaleX(-1);
+    transform: scaleX(1);
 }
 
 #hand-canvas {
@@ -105,7 +105,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    transform: scaleX(-1);
+    transform: scaleX(1);
 }
 
 .hand-guides {
@@ -179,6 +179,10 @@ body {
     overflow: hidden;
     background: rgba(0, 0, 0, 0.3);
     border: 2px solid var(--accent-color);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 #game-canvas {
@@ -189,12 +193,14 @@ body {
 
 .challenge-container {
     position: absolute;
-    bottom: 0;
-    left: 0;
     width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     background: rgba(0, 0, 0, 0.8);
     padding: 20px;
-    border-top: 2px solid var(--accent-color);
 }
 
 .challenge-title {
@@ -202,6 +208,7 @@ body {
     margin-bottom: 15px;
     font-family: 'Press Start 2P', cursive;
     font-size: 16px;
+    text-align: center;
 }
 
 .code-block {
@@ -210,6 +217,8 @@ body {
     padding: 15px;
     margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    max-width: 80%;
+    width: 100%;
 }
 
 .code-block pre {
@@ -220,8 +229,14 @@ body {
 
 .options-container {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-areas: 
+        ". top ."
+        "left center right"
+        ". bottom .";
     gap: 15px;
+    width: 100%;
+    max-width: 800px;
+    padding: 20px;
 }
 
 .option {
@@ -229,32 +244,54 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     padding: 15px;
-    cursor: pointer;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: center;
+    text-align: center;
+    min-height: 80px;
 }
 
-.option:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-2px);
+.option[data-position="top"] { grid-area: top; }
+.option[data-position="right"] { grid-area: right; }
+.option[data-position="bottom"] { grid-area: bottom; }
+.option[data-position="left"] { grid-area: left; }
+.option[data-position="center"] {
+    grid-area: center;
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    font-size: 24px;
+    color: var(--accent-color);
 }
 
 .option.selected {
     border-color: var(--primary-color);
     background: rgba(0, 255, 157, 0.1);
+    transform: scale(1.05);
 }
 
-.option-number {
-    background: rgba(255, 255, 255, 0.1);
-    width: 24px;
-    height: 24px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.option.correct {
+    border-color: var(--success-color);
+    background: rgba(35, 209, 96, 0.1);
+    animation: pulse 1s infinite;
+}
+
+.option.wrong {
+    border-color: var(--error-color);
+    background: rgba(255, 56, 96, 0.1);
+    animation: shake 0.5s;
+}
+
+.gesture-hint {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    padding: 10px 20px;
+    border-radius: 10px;
     font-size: 14px;
+    color: var(--accent-color);
 }
 
 .game-overlay {
@@ -364,6 +401,18 @@ body {
     }
 }
 
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
 @media (max-width: 1200px) {
     .game-container {
         grid-template-columns: 1fr;
@@ -398,4 +447,4 @@ body {
     .options-container {
         grid-template-columns: 1fr;
     }
-}
+} 
