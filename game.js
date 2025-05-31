@@ -138,6 +138,32 @@ const loadingScreen = document.getElementById('loading-screen');
 const tutorial = document.getElementById('tutorial');
 const startGameButton = document.getElementById('start-game');
 
+// 設備檢測
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+// 添加方向警告
+const orientationWarning = document.createElement('div');
+orientationWarning.className = 'orientation-warning';
+orientationWarning.innerHTML = `
+    <div class="orientation-warning-content">
+        <span class="orientation-icon">📱</span>
+        <h2>請將設備轉為豎屏模式</h2>
+        <p>為了獲得最佳體驗，請將您的設備旋轉至豎屏模式。</p>
+    </div>
+`;
+document.body.appendChild(orientationWarning);
+
+// 監聽方向變化
+window.addEventListener('orientationchange', handleOrientationChange);
+window.addEventListener('resize', handleOrientationChange);
+
+function handleOrientationChange() {
+    if (isMobile) {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        orientationWarning.classList.toggle('show', isLandscape);
+    }
+}
+
 // 初始化手部檢測
 const hands = new Hands({
     locateFile: (file) => {
@@ -155,37 +181,81 @@ hands.setOptions({
 // 初始化相機
 async function initializeCamera() {
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({
+        const constraints = {
             video: {
-                width: 640,
-                height: 480,
-                facingMode: 'user'
+                width: { ideal: isMobile ? 1280 : 640 },
+                height: { ideal: isMobile ? 720 : 480 },
+                facingMode: isMobile ? "environment" : "user",
+                frameRate: { ideal: 30 }
             }
-        });
+        };
 
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         videoElement.srcObject = stream;
-        videoElement.style.transform = 'scaleX(1)';
         await videoElement.play();
 
-        handCanvas.width = videoElement.videoWidth;
-        handCanvas.height = videoElement.videoHeight;
+        // 設置畫布尺寸
+        const setCanvasSize = () => {
+            const videoAspectRatio = videoElement.videoWidth / videoElement.videoHeight;
+            const containerWidth = videoElement.offsetWidth;
+            const containerHeight = videoElement.offsetHeight;
+            const containerAspectRatio = containerWidth / containerHeight;
+
+            let canvasWidth, canvasHeight;
+            if (containerAspectRatio > videoAspectRatio) {
+                canvasHeight = containerHeight;
+                canvasWidth = containerHeight * videoAspectRatio;
+            } else {
+                canvasWidth = containerWidth;
+                canvasHeight = containerWidth / videoAspectRatio;
+            }
+
+            handCanvas.width = canvasWidth;
+            handCanvas.height = canvasHeight;
+        };
+
+        // 監聽視頻加載完成事件
+        videoElement.addEventListener('loadedmetadata', setCanvasSize);
+        window.addEventListener('resize', setCanvasSize);
 
         const camera = new Camera(videoElement, {
             onFrame: async () => {
                 await hands.send({image: videoElement});
             },
-            width: 640,
-            height: 480
+            width: videoElement.videoWidth,
+            height: videoElement.videoHeight
         });
 
         await camera.start();
         loadingScreen.style.display = 'none';
         tutorial.style.display = 'flex';
 
+        // 更新相機狀態
+        document.querySelector('.camera-status .status-text').textContent = '已連接';
+        document.querySelector('.camera-status .status-dot').style.backgroundColor = 'var(--success-color)';
+
     } catch (error) {
         console.error('相機初始化錯誤:', error);
-        alert('無法訪問相機，請確保已授予權限並重新整理頁面');
+        loadingScreen.style.display = 'none';
+        showError('無法訪問相機', '請確保已授予相機權限並重新整理頁面。');
     }
+}
+
+// 錯誤提示
+function showError(title, message) {
+    const errorOverlay = document.createElement('div');
+    errorOverlay.className = 'error-overlay';
+    errorOverlay.innerHTML = `
+        <div class="error-content">
+            <h2>${title}</h2>
+            <p>${message}</p>
+            <button onclick="location.reload()" class="game-button">
+                <span class="button-text">重試</span>
+                <span class="button-icon">🔄</span>
+            </button>
+        </div>
+    `;
+    document.body.appendChild(errorOverlay);
 }
 
 // 手勢處理
@@ -195,16 +265,28 @@ hands.onResults((results) => {
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
     handCtx.save();
     
+    // 繪製攝像頭畫面
     handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
 
     if (results.multiHandLandmarks) {
+        // 計算畫布縮放比例
+        const scaleX = handCanvas.width / videoElement.videoWidth;
+        const scaleY = handCanvas.height / videoElement.videoHeight;
+
         // 繪製手部標記
         for (const landmarks of results.multiHandLandmarks) {
-            drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, {
+            // 轉換座標
+            const scaledLandmarks = landmarks.map(landmark => ({
+                x: landmark.x * handCanvas.width,
+                y: landmark.y * handCanvas.height,
+                z: landmark.z
+            }));
+
+            drawConnectors(handCtx, scaledLandmarks, HAND_CONNECTIONS, {
                 color: '#00FF00',
                 lineWidth: 2
             });
-            drawLandmarks(handCtx, landmarks, {
+            drawLandmarks(handCtx, scaledLandmarks, {
                 color: '#FF0000',
                 lineWidth: 1,
                 radius: 3
@@ -220,12 +302,12 @@ hands.onResults((results) => {
             let rightHandY = null;
 
             hands.forEach((hand, index) => {
-                const handType = hand.label.toLowerCase();
                 const landmarks = results.multiHandLandmarks[index];
                 const wristY = landmarks[0].y;
                 const indexFingerY = landmarks[8].y;
                 const handX = landmarks[0].x;
 
+                // 根據手在畫面的位置判斷左右手
                 const isOnLeftSide = handX < 0.5;
                 
                 if (isOnLeftSide) {
@@ -240,6 +322,7 @@ hands.onResults((results) => {
                     }
                 }
 
+                // 顯示手部位置提示
                 const debugText = isOnLeftSide ? "左手" : "右手";
                 handCtx.fillStyle = '#ffffff';
                 handCtx.font = '16px Arial';
