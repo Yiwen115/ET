@@ -113,25 +113,46 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 10px;
-    background: rgba(0, 0, 0, 0.7);
+    padding: 15px;
+    background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: space-between;
+    gap: 10px;
+    z-index: 10;
 }
 
 .hand-guide {
-    font-size: 12px;
-    padding: 5px 10px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.1);
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .hand-guide.left {
-    border-left: 3px solid var(--primary-color);
+    background: rgba(0, 255, 0, 0.2);
+    border-left: 3px solid #00ff00;
 }
 
 .hand-guide.right {
-    border-right: 3px solid var(--secondary-color);
+    background: rgba(255, 0, 0, 0.2);
+    border-right: 3px solid #ff0000;
+}
+
+.hand-guide::before {
+    font-size: 20px;
+}
+
+.hand-guide.left::before {
+    content: '👈';
+}
+
+.hand-guide.right::before {
+    content: '👉';
 }
 
 .player-stats {
@@ -382,26 +403,44 @@ body {
 
 .challenge-title {
     color: var(--primary-color);
-    margin-bottom: 15px;
+    margin-bottom: 20px;
     font-family: 'Press Start 2P', cursive;
-    font-size: 16px;
+    font-size: 20px;
     text-align: center;
+    text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
 }
 
 .code-block {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 10px;
-    padding: 15px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    max-width: 80%;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 30px;
+    border: 1px solid var(--accent-color);
+    max-width: 90%;
     width: 100%;
+    margin: 0 auto 30px;
+    position: relative;
+}
+
+.code-block::before {
+    content: 'JavaScript';
+    position: absolute;
+    top: -12px;
+    left: 20px;
+    background: var(--background-color);
+    padding: 0 10px;
+    color: var(--accent-color);
+    font-size: 14px;
+    border-radius: 4px;
 }
 
 .code-block pre {
     margin: 0;
-    font-family: monospace;
+    font-family: 'Fira Code', monospace;
     color: var(--text-color);
+    font-size: 16px;
+    line-height: 1.5;
+    white-space: pre-wrap;
 }
 
 .options-container {
@@ -410,41 +449,95 @@ body {
         ". top ."
         "left center right"
         ". bottom .";
-    gap: 15px;
+    gap: 20px;
     width: 100%;
     max-width: 800px;
     padding: 20px;
+    position: relative;
 }
 
 .option {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    padding: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 15px;
+    padding: 20px;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     min-height: 80px;
+    position: relative;
+    font-size: 16px;
+    color: var(--text-color);
 }
 
-.option[data-position="top"] { grid-area: top; }
-.option[data-position="right"] { grid-area: right; }
-.option[data-position="bottom"] { grid-area: bottom; }
-.option[data-position="left"] { grid-area: left; }
+.option::before {
+    content: '';
+    position: absolute;
+    width: 30px;
+    height: 30px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.option[data-position="top"] { 
+    grid-area: top;
+}
+.option[data-position="top"]::before {
+    content: '↑';
+    bottom: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.option[data-position="right"] { 
+    grid-area: right;
+}
+.option[data-position="right"]::before {
+    content: '→';
+    left: calc(100% + 5px);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.option[data-position="bottom"] { 
+    grid-area: bottom;
+}
+.option[data-position="bottom"]::before {
+    content: '↓';
+    top: calc(100% + 5px);
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.option[data-position="left"] { 
+    grid-area: left;
+}
+.option[data-position="left"]::before {
+    content: '←';
+    right: calc(100% + 5px);
+    top: 50%;
+    transform: translateY(-50%);
+}
+
 .option[data-position="center"] {
     grid-area: center;
     background: rgba(0, 0, 0, 0.5);
     border: none;
-    font-size: 24px;
+    font-size: 32px;
     color: var(--accent-color);
 }
 
 .option.selected {
     border-color: var(--primary-color);
-    background: rgba(0, 255, 157, 0.1);
+    background: rgba(0, 255, 157, 0.2);
     transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
 }
 
 .option.correct {
@@ -464,11 +557,14 @@ body {
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    padding: 10px 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 12px 20px;
     border-radius: 10px;
-    font-size: 14px;
+    font-size: 16px;
     color: var(--accent-color);
+    border: 1px solid var(--accent-color);
+    white-space: nowrap;
+    z-index: 20;
 }
 
 .game-overlay {
@@ -624,4 +720,50 @@ body {
     .options-container {
         grid-template-columns: 1fr;
     }
+}
+
+.pause-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.pause-content {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 40px;
+    border-radius: 20px;
+    text-align: center;
+    border: 2px solid var(--accent-color);
+    animation: fadeInScale 0.3s ease;
+}
+
+.pause-content h2 {
+    color: var(--accent-color);
+    margin-bottom: 20px;
+    font-family: 'Press Start 2P', cursive;
+}
+
+.pause-content button {
+    background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    border: none;
+    padding: 15px 30px;
+    border-radius: 10px;
+    color: var(--background-color);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 14px;
+    cursor: pointer;
+    margin: 10px;
+    transition: all 0.3s ease;
+}
+
+.pause-content button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
 } 
