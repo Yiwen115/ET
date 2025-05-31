@@ -9,12 +9,16 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/styles/atom-one-dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/highlight.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highlight.js@11.7.0/lib/languages/javascript.min.js"></script>
     <link rel="stylesheet" href="styles.css">
   </head>
 
   <body>
     <div id="loading-screen" class="loading-screen">
-        <div class="loading-content">
+        <div class="loading-content animate__animated animate__fadeIn">
             <h2>正在載入遊戲...</h2>
             <div class="loading-bar">
                 <div class="loading-progress"></div>
@@ -25,39 +29,83 @@
 
     <div class="game-container">
         <div class="sidebar">
+            <div class="player-info">
+                <div class="player-avatar">
+                    <img src="https://avatars.dicebear.com/api/bottts/player.svg" alt="Player Avatar">
+                </div>
+                <div class="player-details">
+                    <h3>Code Explorer</h3>
+                    <div class="level-badge">Level <span id="level">1</span></div>
+                </div>
+            </div>
+
             <div class="camera-container">
+                <div class="camera-header">
+                    <span class="camera-title">手勢控制</span>
+                    <div class="camera-status">
+                        <span class="status-dot"></span>
+                        <span class="status-text">已連接</span>
+                    </div>
+                </div>
                 <video id="input-video" playsinline></video>
                 <canvas id="hand-canvas"></canvas>
                 <div class="hand-guides">
-                    <div class="hand-guide left">左手：移動/選擇</div>
-                    <div class="hand-guide right">右手：跳躍/確認</div>
+                    <div class="hand-guide left">
+                        <span class="guide-icon">👈</span>
+                        <span class="guide-text">左手：選擇</span>
+                    </div>
+                    <div class="hand-guide right">
+                        <span class="guide-icon">👉</span>
+                        <span class="guide-text">右手：確認</span>
+                    </div>
                 </div>
             </div>
-            <div class="player-stats">
-                <div class="stat-item">
-                    <span class="stat-label">等級</span>
-                    <span id="level" class="stat-value">1</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">分數</span>
-                    <span id="score" class="stat-value">0</span>
-                </div>
-                <div class="stat-item">
-                    <span class="stat-label">生命值</span>
-                    <div id="health-bar" class="health-bar">
+
+            <div class="stats-container">
+                <div class="stat-row">
+                    <div class="stat-label">生命值</div>
+                    <div class="health-bar">
                         <div class="health-fill"></div>
+                        <span class="health-text">100%</span>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">分數</div>
+                    <div class="score-display">
+                        <span id="score">0</span>
+                        <span class="score-points">pts</span>
+                    </div>
+                </div>
+                <div class="stat-row">
+                    <div class="stat-label">進度</div>
+                    <div class="progress-bar">
+                        <div class="progress-fill"></div>
+                        <span class="progress-text">0/10</span>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="main-game-area">
-            <canvas id="game-canvas"></canvas>
+            <div class="game-header">
+                <div class="challenge-info">
+                    <span class="challenge-number">Challenge #<span id="challenge-number">1</span></span>
+                    <span class="challenge-type">JavaScript Basics</span>
+                </div>
+                <div class="timer">
+                    <span class="timer-icon">⏱️</span>
+                    <span id="time-left">30</span>s
+                </div>
+            </div>
+
             <div id="challenge-container" class="challenge-container">
-                <h3 class="challenge-title">編程挑戰</h3>
                 <div class="challenge-content">
                     <div class="code-block">
-                        <pre><code id="challenge-code"></code></pre>
+                        <pre><code id="challenge-code" class="javascript"></code></pre>
+                    </div>
+                    <div class="hint-box">
+                        <span class="hint-icon">💡</span>
+                        <span id="challenge-hint">提示會在這裡顯示</span>
                     </div>
                     <div class="options-container">
                         <div class="option" data-value="0">
@@ -71,38 +119,77 @@
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="game-overlay">
-            <div id="level-complete" class="overlay-panel">
-                <h2>關卡完成！</h2>
-                <div class="level-stats">
-                    <p>獲得分數: <span id="level-score">0</span></p>
-                    <p>正確率: <span id="accuracy">0%</span></p>
+            <div class="game-footer">
+                <div class="combo-meter">
+                    <span class="combo-label">COMBO</span>
+                    <span class="combo-count" id="combo-count">x1</span>
                 </div>
-                <button id="next-level" class="game-button">下一關</button>
+                <div class="achievement-popup" id="achievement-popup">
+                    <span class="achievement-icon">🏆</span>
+                    <span class="achievement-text">新成就解鎖！</span>
+                </div>
             </div>
         </div>
     </div>
 
     <div id="tutorial" class="tutorial-overlay">
-        <div class="tutorial-content">
-            <h2>遊戲教學</h2>
+        <div class="tutorial-content animate__animated animate__fadeInUp">
+            <h2>歡迎來到程式碼大冒險！</h2>
             <div class="tutorial-steps">
                 <div class="tutorial-step">
+                    <div class="step-icon">👋</div>
+                    <div class="step-content">
+                        <h3>手勢控制</h3>
+                        <p>使用自然的手勢來操控遊戲</p>
+                    </div>
+                </div>
+                <div class="tutorial-step">
                     <div class="step-icon">👈</div>
-                    <p>左手上下移動：選擇選項</p>
+                    <div class="step-content">
+                        <h3>選擇答案</h3>
+                        <p>左手上下移動來選擇選項</p>
+                    </div>
                 </div>
                 <div class="tutorial-step">
                     <div class="step-icon">👉</div>
-                    <p>右手舉起：確認選擇</p>
+                    <div class="step-content">
+                        <h3>確認答案</h3>
+                        <p>舉起右手確認你的選擇</p>
+                    </div>
                 </div>
                 <div class="tutorial-step">
                     <div class="step-icon">🤚</div>
-                    <p>雙手舉起：暫停遊戲</p>
+                    <div class="step-content">
+                        <h3>暫停遊戲</h3>
+                        <p>同時舉起雙手暫停遊戲</p>
+                    </div>
                 </div>
             </div>
-            <button id="start-game" class="game-button">開始冒險</button>
+            <button id="start-game" class="game-button">
+                <span class="button-text">開始冒險</span>
+                <span class="button-icon">🚀</span>
+            </button>
+        </div>
+    </div>
+
+    <div id="pause-menu" class="pause-menu hide">
+        <div class="pause-content animate__animated animate__fadeIn">
+            <h2>遊戲暫停</h2>
+            <div class="pause-options">
+                <button class="menu-button" onclick="resumeGame()">
+                    <span class="button-icon">▶️</span>
+                    <span class="button-text">繼續遊戲</span>
+                </button>
+                <button class="menu-button" onclick="restartGame()">
+                    <span class="button-icon">🔄</span>
+                    <span class="button-text">重新開始</span>
+                </button>
+                <button class="menu-button" onclick="showTutorial()">
+                    <span class="button-icon">📖</span>
+                    <span class="button-text">查看教學</span>
+                </button>
+            </div>
         </div>
     </div>
 
