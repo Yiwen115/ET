@@ -189,7 +189,7 @@ hands.onResults((results) => {
             let rightHandY = null;
 
             hands.forEach((hand, index) => {
-                const handType = hand.label.toLowerCase();
+                const handType = hand.label.toLowerCase() === 'left' ? 'right' : 'left';
                 const landmarks = results.multiHandLandmarks[index];
                 const wristY = landmarks[0].y;
                 const indexFingerY = landmarks[8].y;
@@ -226,7 +226,7 @@ hands.onResults((results) => {
             }
         }
     }
-
+    
     handCtx.restore();
 });
 
@@ -391,4 +391,4 @@ document.addEventListener('keydown', (e) => {
             pauseGame();
             break;
     }
-});
+}); 
