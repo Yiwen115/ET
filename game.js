@@ -7,24 +7,22 @@ const gameState = {
     currentChallenge: null,
     selectedOption: null,
     canAnswer: false,
-    lastGesture: null,
-    gestureTimeout: null,
     timer: null,
     timeLeft: 0,
-    leftHandGesture: null,  // 新增：左手手勢
-    rightHandGesture: null  // 新增：右手手勢
+    leftHandGesture: null,
+    rightHandGesture: null
 };
 
 // 遊戲配置
 const config = {
     maxHealth: 100,
-    healthLossOnWrong: 25,
-    healthLossPerSecond: 0.5,
-    healthGainOnCorrect: 15,
-    streakBonus: 5,
-    maxStreak: 5,
-    challengeTime: 20,
-    minChallengeTime: 10
+    healthLossOnWrong: 25,    // 答錯扣血量
+    healthLossPerSecond: 0.5, // 每秒扣血量
+    healthGainOnCorrect: 15,  // 答對回血量
+    streakBonus: 5,          // 連擊獎勵
+    maxStreak: 5,            // 最大連擊數
+    challengeTime: 20,       // 每題時間
+    gestureThreshold: 0.15   // 手勢判定閾值
 };
 
 // 程式設計挑戰題庫
@@ -121,7 +119,6 @@ async function initializeCamera() {
         });
 
         videoElement.srcObject = stream;
-        videoElement.style.transform = 'scaleX(1)';
         await videoElement.play();
 
         handCanvas.width = videoElement.videoWidth;
@@ -136,8 +133,8 @@ async function initializeCamera() {
         });
 
         await camera.start();
-        loadingScreen.style.display = 'none';
-        tutorial.style.display = 'flex';
+        document.getElementById('loading-screen').style.display = 'none';
+        document.getElementById('tutorial').style.display = 'flex';
 
     } catch (error) {
         console.error('相機初始化錯誤:', error);
@@ -161,40 +158,50 @@ function updateOptions(challenge) {
 hands.onResults((results) => {
     const handCtx = handCanvas.getContext('2d');
     
+    // 清除畫布
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
-    handCtx.save();
     
     // 繪製鏡像的視訊
+    handCtx.save();
     handCtx.scale(-1, 1);
     handCtx.translate(-handCanvas.width, 0);
     handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
     handCtx.restore();
     
-    handCtx.save();
     if (results.multiHandLandmarks) {
         // 繪製手部標記
-        for (const landmarks of results.multiHandLandmarks) {
+        handCtx.save();
+        handCtx.scale(-1, 1);
+        handCtx.translate(-handCanvas.width, 0);
+
+        results.multiHandLandmarks.forEach((landmarks, index) => {
+            const handedness = results.multiHandedness[index];
+            const isLeft = handedness.label.toLowerCase() === 'left';
+            const color = isLeft ? '#00FF00' : '#FF0000';
+            
             drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, {
-                color: '#00FF00',
+                color: color,
                 lineWidth: 2
             });
             drawLandmarks(handCtx, landmarks, {
-                color: '#FF0000',
+                color: color,
                 lineWidth: 1,
-                radius: 3
+                radius: 3,
+                fillColor: color
             });
-        }
+        });
+
+        handCtx.restore();
 
         // 遊戲控制邏輯
         if (gameState.isPlaying && gameState.canAnswer) {
-            const hands = results.multiHandedness;
-            
             // 重置手勢狀態
             let leftHandGesture = null;
             let rightHandGesture = null;
 
-            hands.forEach((hand, index) => {
-                const handType = hand.label.toLowerCase();
+            results.multiHandedness.forEach((hand, index) => {
+                const isLeft = hand.label.toLowerCase() === 'left';
+                const handType = isLeft ? 'right' : 'left'; // 因為鏡像效果需要反轉
                 const landmarks = results.multiHandLandmarks[index];
                 
                 // 獲取手腕和食指的座標
@@ -203,53 +210,36 @@ hands.onResults((results) => {
                 
                 // 計算相對位移（考慮鏡像效果）
                 const deltaY = indexFinger.y - wrist.y;
-                const deltaX = -(indexFinger.x - wrist.x); // 反轉 X 軸方向
-                
-                // 設定手勢判定的閾值
-                const threshold = 0.15;
+                const deltaX = -(indexFinger.x - wrist.x);
                 
                 // 判斷手勢方向
                 let gesture = null;
                 if (Math.abs(deltaY) > Math.abs(deltaX)) {
-                    // 垂直移動
-                    if (deltaY < -threshold) {
-                        gesture = 0; // 上
-                    } else if (deltaY > threshold) {
-                        gesture = 2; // 下
-                    }
+                    if (deltaY < -config.gestureThreshold) gesture = 0; // 上
+                    else if (deltaY > config.gestureThreshold) gesture = 2; // 下
                 } else {
-                    // 水平移動
-                    if (deltaX < -threshold) {
-                        gesture = 3; // 左
-                    } else if (deltaX > threshold) {
-                        gesture = 1; // 右
-                    }
+                    if (deltaX < -config.gestureThreshold) gesture = 3; // 左
+                    else if (deltaX > config.gestureThreshold) gesture = 1; // 右
                 }
 
-                // 根據手的類型儲存手勢
-                if (handType === 'left') {
-                    leftHandGesture = gesture;
-                } else {
-                    rightHandGesture = gesture;
-                }
+                // 儲存手勢
+                if (handType === 'left') leftHandGesture = gesture;
+                else rightHandGesture = gesture;
             });
 
-            // 更新遊戲狀態中的手勢
+            // 更新遊戲狀態
             gameState.leftHandGesture = leftHandGesture;
             gameState.rightHandGesture = rightHandGesture;
 
-            // 處理手勢邏輯
+            // 處理手勢
             if (leftHandGesture !== null) {
-                // 左手選擇選項
                 selectOption(leftHandGesture);
             }
 
-            // 如果右手做出確認手勢（向上），且已經選擇了選項
             if (rightHandGesture === 0 && gameState.selectedOption !== null) {
                 checkAnswer(gameState.selectedOption);
             }
 
-            // 如果雙手同時向下，暫停遊戲
             if (leftHandGesture === 2 && rightHandGesture === 2) {
                 pauseGame();
             }
@@ -258,8 +248,6 @@ hands.onResults((results) => {
             updateGestureHint(leftHandGesture, rightHandGesture);
         }
     }
-    
-    handCtx.restore();
 });
 
 // 更新手勢提示
@@ -267,13 +255,17 @@ function updateGestureHint(leftGesture, rightGesture) {
     const gestureHint = document.querySelector('.gesture-hint');
     if (!gestureHint) return;
 
+    const directions = ['上', '右', '下', '左'];
     let hintText = '';
+    
     if (leftGesture !== null) {
-        const directions = ['上', '右', '下', '左'];
         hintText = `左手：${directions[leftGesture]} `;
     }
-    if (rightGesture !== null) {
-        hintText += rightGesture === 0 ? '右手：確認' : '';
+    
+    if (rightGesture === 0) {
+        hintText += '右手：確認';
+    } else if (rightGesture === 2 && leftGesture === 2) {
+        hintText = '暫停遊戲';
     }
 
     gestureHint.textContent = hintText || '等待手勢...';
@@ -331,8 +323,10 @@ function checkAnswer(selectedIndex) {
 
 // 顯示反饋
 function showFeedback(isCorrect, explanation, bonus = '') {
-    const option = options[gameState.selectedOption];
-    option?.classList.add(isCorrect ? 'correct' : 'wrong');
+    const option = document.querySelector(`.option[data-index="${gameState.selectedOption}"]`);
+    if (option) {
+        option.classList.add(isCorrect ? 'correct' : 'wrong');
+    }
     
     const feedback = document.createElement('div');
     feedback.className = `feedback ${isCorrect ? 'correct' : 'wrong'}`;
@@ -347,7 +341,9 @@ function showFeedback(isCorrect, explanation, bonus = '') {
     
     setTimeout(() => {
         feedback.remove();
-        option?.classList.remove('correct', 'wrong');
+        if (option) {
+            option.classList.remove('correct', 'wrong');
+        }
     }, 1900);
 }
 
@@ -356,41 +352,14 @@ function updateUI() {
     const healthText = document.querySelector('.health-text');
     const healthFill = document.querySelector('.health-fill');
     
-    healthText.textContent = `${Math.round(gameState.health)}%`;
-    healthFill.style.width = `${gameState.health}%`;
-    document.querySelector('.code-quality').textContent = gameState.codeQuality;
-    document.querySelector('.streak-count').textContent = gameState.streak;
-}
-
-// 更新挑戰題目
-function updateChallenge(challenge) {
-    const codeBlock = document.querySelector('.code-block pre');
-    codeBlock.textContent = challenge.code;
-    updateOptions(challenge);
-}
-
-// 下一個挑戰
-function nextChallenge() {
-    const randomIndex = Math.floor(Math.random() * challenges.length);
-    gameState.currentChallenge = challenges[randomIndex];
-    updateChallenge(gameState.currentChallenge);
-    gameState.selectedOption = null;
-    gameState.canAnswer = true;
-    gameState.lastGesture = null;
-    clearTimeout(gameState.gestureTimeout);
-}
-
-// 開始遊戲
-function startGame() {
-    gameState.isPlaying = true;
-    gameState.health = config.maxHealth;
-    gameState.codeQuality = 0;
-    gameState.streak = 0;
+    if (healthText) healthText.textContent = `${Math.round(gameState.health)}%`;
+    if (healthFill) healthFill.style.width = `${gameState.health}%`;
     
-    document.getElementById('tutorial').style.display = 'none';
-    updateUI();
-    nextChallenge();
-    startTimer();
+    const codeQuality = document.querySelector('.code-quality');
+    if (codeQuality) codeQuality.textContent = gameState.codeQuality;
+    
+    const streakCount = document.querySelector('.streak-count');
+    if (streakCount) streakCount.textContent = gameState.streak;
 }
 
 // 開始計時器
@@ -424,12 +393,26 @@ function updateTimerDisplay() {
     }
 }
 
+// 開始遊戲
+function startGame() {
+    gameState.isPlaying = true;
+    gameState.health = config.maxHealth;
+    gameState.codeQuality = 0;
+    gameState.streak = 0;
+    
+    document.getElementById('tutorial').style.display = 'none';
+    updateUI();
+    nextChallenge();
+    startTimer();
+}
+
 // 暫停遊戲
 function pauseGame() {
     if (!gameState.isPlaying) return;
     
     gameState.isPlaying = false;
-    // 顯示暫停選單
+    clearInterval(gameState.timer);
+    
     const pauseMenu = document.createElement('div');
     pauseMenu.className = 'pause-menu';
     pauseMenu.innerHTML = `
@@ -449,6 +432,7 @@ function resumeGame() {
     if (pauseMenu) {
         pauseMenu.remove();
     }
+    startTimer();
 }
 
 // 結束遊戲
@@ -472,15 +456,26 @@ function endGame() {
     document.body.appendChild(gameOverScreen);
 }
 
-// 完成遊戲
-function completeGame() {
-    gameState.isPlaying = false;
-    alert(`恭喜完成所有關卡！\n最終得分：${gameState.score}`);
-    location.reload();
+// 更新挑戰
+function updateChallenge(challenge) {
+    const codeBlock = document.querySelector('.code-block pre');
+    if (codeBlock) {
+        codeBlock.textContent = challenge.code;
+    }
+    updateOptions(challenge);
+}
+
+// 下一個挑戰
+function nextChallenge() {
+    const randomIndex = Math.floor(Math.random() * challenges.length);
+    gameState.currentChallenge = challenges[randomIndex];
+    updateChallenge(gameState.currentChallenge);
+    gameState.selectedOption = null;
+    gameState.canAnswer = true;
 }
 
 // 事件監聽
-startGameButton.addEventListener('click', startGame);
+document.getElementById('start-game').addEventListener('click', startGame);
 window.addEventListener('load', initializeCamera);
 
 // 添加鍵盤控制（用於測試）
