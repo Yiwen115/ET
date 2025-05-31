@@ -837,4 +837,208 @@ body {
     .achievement-popup {
         bottom: calc(2rem + env(safe-area-inset-bottom));
     }
+}
+
+/* 道具容器 */
+.powerup-container {
+    display: flex;
+    gap: 1rem;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 0.5rem;
+    backdrop-filter: blur(5px);
+}
+
+.powerup-item {
+    position: relative;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 0.5rem;
+    background: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
+
+.powerup-item:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
+
+.powerup-icon {
+    font-size: 1.5rem;
+}
+
+.powerup-count {
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: var(--accent-color);
+    color: white;
+    padding: 0.2rem 0.4rem;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+}
+
+.powerup-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    color: white;
+    padding: 0.5rem;
+    border-radius: 0.3rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.powerup-item:hover .powerup-tooltip {
+    opacity: 1;
+}
+
+/* 道具效果 */
+.powerup-effect {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 1rem;
+    text-align: center;
+    z-index: 1000;
+}
+
+.effect-text {
+    font-size: 1.5rem;
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--accent-color);
+}
+
+/* 遊戲設定 */
+.game-settings {
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 100;
+}
+
+.settings-button {
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    border-radius: 50%;
+    width: 3rem;
+    height: 3rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.settings-button:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: rotate(45deg);
+}
+
+.settings-icon {
+    font-size: 1.5rem;
+}
+
+.settings-panel {
+    position: absolute;
+    bottom: 100%;
+    right: 0;
+    margin-bottom: 1rem;
+    background: rgba(0, 0, 0, 0.9);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    width: 250px;
+}
+
+.settings-panel h3 {
+    color: white;
+    margin: 0 0 1rem 0;
+    font-size: 1.2rem;
+}
+
+.settings-group {
+    margin-bottom: 1rem;
+}
+
+.settings-group label {
+    color: white;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.settings-group input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+/* 統計數據 */
+.statistics-summary {
+    background: rgba(0, 0, 0, 0.8);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    margin: 1rem 0;
+}
+
+.statistics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* 動畫效果 */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.powerup-item:active {
+    animation: pulse 0.3s ease;
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+    .powerup-container {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .settings-panel {
+        width: 100%;
+        max-width: 300px;
+    }
+
+    .statistics-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* 深色主題支援 */
+@media (prefers-color-scheme: dark) {
+    .settings-panel {
+        background: rgba(30, 30, 30, 0.95);
+    }
+}
+
+/* 遊戲結束按鈕組 */
+.game-over-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
+}
+
+.game-button.secondary {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.game-button.secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
 } 
