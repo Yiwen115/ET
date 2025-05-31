@@ -401,7 +401,7 @@ const hands = new Hands({
 
 // 更詳細的手部檢測配置
 hands.setOptions({
-    maxNumHands: 2,
+    maxNumHands: 2, // 確保可以檢測到兩隻手
     modelComplexity: 1,
     minDetectionConfidence: 0.5,
     minTrackingConfidence: 0.5
@@ -411,13 +411,13 @@ hands.setOptions({
 async function initializeCamera() {
     try {
         // 更新相機狀態為正在連接
-        updateCameraStatus('正在連接...', 'warning');
+        updateCameraStatus('正在連接相機...', 'warning');
 
         const constraints = {
             video: {
                 width: { ideal: isMobile ? 1280 : 640 },
                 height: { ideal: isMobile ? 720 : 480 },
-                facingMode: isMobile ? "environment" : "user",
+                facingMode: "user", // 強制使用前置攝像頭
                 frameRate: { ideal: 30 }
             }
         };
@@ -435,7 +435,7 @@ async function initializeCamera() {
         await videoElement.play();
 
         // 設置畫布尺寸
-        const setCanvasSize = () => {
+        function setCanvasSize() {
             const videoAspectRatio = videoElement.videoWidth / videoElement.videoHeight;
             const containerWidth = videoElement.offsetWidth;
             const containerHeight = videoElement.offsetHeight;
@@ -455,9 +455,10 @@ async function initializeCamera() {
 
             // 設置繪圖上下文的變換
             const handCtx = handCanvas.getContext('2d');
-            handCtx.translate(handCanvas.width, 0);
+            handCtx.clearRect(0, 0, canvasWidth, canvasHeight);
+            handCtx.translate(canvasWidth, 0);
             handCtx.scale(-1, 1);
-        };
+        }
 
         // 監聽視頻加載和窗口調整事件
         videoElement.addEventListener('loadedmetadata', setCanvasSize);
@@ -471,7 +472,7 @@ async function initializeCamera() {
                     await hands.send({image: videoElement});
                 } catch (error) {
                     console.error('手部檢測錯誤:', error);
-                    updateCameraStatus('檢測錯誤', 'error');
+                    updateCameraStatus('手部檢測錯誤', 'error');
                 }
             },
             width: videoElement.videoWidth,
@@ -480,10 +481,15 @@ async function initializeCamera() {
 
         // 啟動相機
         await camera.start();
+        updateCameraStatus('相機已連接，等待手部檢測...', 'success');
+
+        // 開啟調試模式以便觀察問題
+        handControl.debugMode = true;
         
-        updateCameraStatus('已連接', 'success');
-        loadingScreen.style.display = 'none';
-        tutorial.style.display = 'flex';
+        // 添加手部檢測狀態監聽
+        hands.onResults((results) => {
+            handleResults(results);
+        });
 
     } catch (error) {
         console.error('相機初始化錯誤:', error);
@@ -491,19 +497,8 @@ async function initializeCamera() {
     }
 }
 
-// 更新相機狀態
-function updateCameraStatus(message, type) {
-    const statusText = document.querySelector('.camera-status .status-text');
-    const statusDot = document.querySelector('.camera-status .status-dot');
-    
-    statusText.textContent = message;
-    statusDot.style.backgroundColor = type === 'success' ? 'var(--success-color)' :
-                                    type === 'warning' ? 'var(--warning-color)' :
-                                    'var(--error-color)';
-}
-
-// 手勢處理
-hands.onResults((results) => {
+// 處理手部檢測結果
+function handleResults(results) {
     const handCtx = handCanvas.getContext('2d');
     
     // 清除畫布
@@ -528,77 +523,73 @@ hands.onResults((results) => {
 
             // 繪製連接線
             drawConnectors(handCtx, scaledLandmarks, HAND_CONNECTIONS, {
-                color: '#00FF00',
+                color: results.multiHandedness[index].label === 'Left' ? '#00FF00' : '#FF0000',
                 lineWidth: 3
             });
 
             // 繪製關鍵點
             drawLandmarks(handCtx, scaledLandmarks, {
-                color: '#FF0000',
+                color: '#FFFFFF',
                 lineWidth: 2,
                 radius: 4,
-                fillColor: '#FFFFFF'
+                fillColor: results.multiHandedness[index].label === 'Left' ? '#00FF00' : '#FF0000'
             });
 
-            // 顯示手部類型和調試信息
-            if (handControl.debugMode) {
-                const handType = results.multiHandedness[index].label;
-                const handX = landmarks[0].x * handCanvas.width;
-                const handY = landmarks[0].y * handCanvas.height;
-                
-                handCtx.fillStyle = '#FFFFFF';
-                handCtx.font = '16px Arial';
-                handCtx.fillText(`${handType} (${Math.round(handX)}, ${Math.round(handY)})`, handX, handY - 10);
-            }
+            // 顯示調試信息
+            const handType = results.multiHandedness[index].label;
+            const handX = landmarks[0].x * handCanvas.width;
+            const handY = landmarks[0].y * handCanvas.height;
+            const isRaised = landmarks[8].y < landmarks[0].y - handControl.selectionThreshold;
+            
+            handCtx.fillStyle = '#FFFFFF';
+            handCtx.font = '14px Arial';
+            handCtx.fillText(
+                `${handType} (${Math.round(handX)}, ${Math.round(handY)}) ${isRaised ? '✋' : '👊'}`,
+                handX, handY - 10
+            );
         });
 
         // 遊戲控制邏輯
         if (gameState.isPlaying && gameState.canAnswer) {
-            let leftHandRaised = false;
-            let rightHandRaised = false;
-            let leftHandY = null;
-            let rightHandY = null;
+            let leftHand = null;
+            let rightHand = null;
 
+            // 分類左右手
             results.multiHandLandmarks.forEach((landmarks, index) => {
                 const handType = results.multiHandedness[index].label;
-                const wristY = landmarks[0].y;
-                const indexFingerY = landmarks[8].y;
                 const handX = landmarks[0].x;
-
-                // 根據手在畫面的位置判斷左右手
-                const isOnLeftSide = handX < 0.5;
                 
-                if (isOnLeftSide) {
-                    leftHandY = wristY;
-                    if (indexFingerY < wristY - handControl.selectionThreshold) {
-                        leftHandRaised = true;
-                    }
+                if (handX < 0.5) {
+                    leftHand = {
+                        landmarks,
+                        type: handType,
+                        isRaised: landmarks[8].y < landmarks[0].y - handControl.selectionThreshold
+                    };
                 } else {
-                    rightHandY = wristY;
-                    if (indexFingerY < wristY - handControl.confirmThreshold) {
-                        rightHandRaised = true;
-                    }
+                    rightHand = {
+                        landmarks,
+                        type: handType,
+                        isRaised: landmarks[8].y < landmarks[0].y - handControl.confirmThreshold
+                    };
                 }
             });
 
-            // 使用左手上下移動選擇選項（加入冷卻時間）
-            if (leftHandY !== null && !handControl.selectionCooldown) {
-                const normalizedY = leftHandY;
-                const selectedIndex = Math.floor(normalizedY * 2);
-                
+            // 處理左手選擇
+            if (leftHand && !handControl.selectionCooldown) {
+                const normalizedY = leftHand.landmarks[0].y;
                 if (Math.abs((handControl.lastLeftHandY || 0) - normalizedY) > handControl.selectionThreshold) {
+                    const selectedIndex = Math.floor(normalizedY * 2);
                     selectOption(Math.min(selectedIndex, 1));
                     handControl.selectionCooldown = true;
                     setTimeout(() => {
                         handControl.selectionCooldown = false;
                     }, handControl.cooldownTime);
                 }
-                
                 handControl.lastLeftHandY = normalizedY;
             }
 
-            // 使用右手確認選擇（加入冷卻時間）
-            if (rightHandRaised && gameState.selectedOption !== null && !handControl.confirmCooldown) {
+            // 處理右手確認
+            if (rightHand && rightHand.isRaised && gameState.selectedOption !== null && !handControl.confirmCooldown) {
                 checkAnswer(gameState.selectedOption);
                 handControl.confirmCooldown = true;
                 setTimeout(() => {
@@ -606,8 +597,8 @@ hands.onResults((results) => {
                 }, handControl.cooldownTime);
             }
 
-            // 雙手舉起暫停遊戲（加入冷卻時間）
-            if (leftHandRaised && rightHandRaised && !handControl.pauseCooldown) {
+            // 處理雙手暫停
+            if (leftHand && rightHand && leftHand.isRaised && rightHand.isRaised && !handControl.pauseCooldown) {
                 pauseGame();
                 handControl.pauseCooldown = true;
                 setTimeout(() => {
@@ -616,34 +607,81 @@ hands.onResults((results) => {
             }
         }
     } else {
-        updateCameraStatus('未檢測到手部', 'warning');
+        updateCameraStatus('未檢測到手部，請確保手部在畫面中', 'warning');
     }
     
     handCtx.restore();
-});
+}
+
+// 更新相機狀態顯示
+function updateCameraStatus(message, type) {
+    const statusText = document.querySelector('.camera-status .status-text');
+    const statusDot = document.querySelector('.camera-status .status-dot');
+    
+    if (statusText && statusDot) {
+        statusText.textContent = message;
+        statusDot.style.backgroundColor = type === 'success' ? 'var(--success-color)' :
+                                        type === 'warning' ? 'var(--warning-color)' :
+                                        'var(--error-color)';
+        
+        // 在控制台輸出狀態，方便調試
+        console.log(`相機狀態: ${message} (${type})`);
+    }
+}
 
 // 選擇選項
 function selectOption(index) {
+    if (!gameState.canAnswer) return;
+    
+    const options = document.querySelectorAll('.option');
     options.forEach(option => option.classList.remove('selected'));
-    options[index].classList.add('selected');
-    gameState.selectedOption = index;
+    
+    if (index >= 0 && index < options.length) {
+        options[index].classList.add('selected');
+        gameState.selectedOption = index;
+    }
 }
 
 // 更新UI
 function updateUI() {
-    levelDisplay.textContent = gameState.level;
-    scoreDisplay.textContent = gameState.score;
-    document.querySelector('.health-fill').style.width = `${gameState.health}%`;
-    document.querySelector('.health-text').textContent = `${gameState.health}%`;
-    document.querySelector('.progress-fill').style.width = `${(gameState.challengesCompleted / config.challengesPerLevel) * 100}%`;
-    document.querySelector('.progress-text').textContent = `${gameState.challengesCompleted}/${config.challengesPerLevel}`;
-    document.querySelector('#combo-count').textContent = `x${gameState.combo}`;
-    document.querySelector('#challenge-number').textContent = gameState.challengesCompleted + 1;
-    document.querySelector('#time-left').textContent = gameState.timeLeft;
-    
-    // 根據連擊數更新連擊計數器的視覺效果
-    const comboElement = document.querySelector('.combo-meter');
-    comboElement.className = `combo-meter ${gameState.combo >= 3 ? 'high-combo' : ''}`;
+    // 更新所有UI元素
+    const elements = {
+        'level': gameState.level,
+        'score': gameState.score,
+        'combo-count': `x${gameState.combo}`,
+        'challenge-number': gameState.challengesCompleted + 1,
+        'time-left': gameState.timeLeft
+    };
+
+    for (const [id, value] of Object.entries(elements)) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    // 更新血量條
+    const healthFill = document.querySelector('.health-fill');
+    const healthText = document.querySelector('.health-text');
+    if (healthFill && healthText) {
+        healthFill.style.width = `${gameState.health}%`;
+        healthText.textContent = `${gameState.health}%`;
+    }
+
+    // 更新進度條
+    const progressFill = document.querySelector('.progress-fill');
+    const progressText = document.querySelector('.progress-text');
+    if (progressFill && progressText) {
+        const progress = (gameState.challengesCompleted / config.challengesPerLevel) * 100;
+        progressFill.style.width = `${progress}%`;
+        progressText.textContent = `${gameState.challengesCompleted}/${config.challengesPerLevel}`;
+    }
+
+    // 更新連擊效果
+    const comboMeter = document.querySelector('.combo-meter');
+    if (comboMeter) {
+        comboMeter.className = `combo-meter ${gameState.combo >= 3 ? 'high-combo' : ''}`;
+    }
 }
 
 // 顯示成就
@@ -822,19 +860,36 @@ function nextChallenge() {
     gameState.currentChallenge = availableChallenges[randomIndex];
     
     // 使用 highlight.js 美化程式碼
-    challengeCode.textContent = gameState.currentChallenge.code;
-    hljs.highlightElement(challengeCode);
+    const challengeCode = document.getElementById('challenge-code');
+    if (challengeCode) {
+        challengeCode.textContent = gameState.currentChallenge.code;
+        hljs.highlightElement(challengeCode);
+    }
     
     // 更新提示
-    document.getElementById('challenge-hint').textContent = gameState.currentChallenge.hint;
+    const hintElement = document.getElementById('challenge-hint');
+    if (hintElement) {
+        hintElement.textContent = gameState.currentChallenge.hint;
+    }
     
-    options.forEach((option, index) => {
-        option.querySelector('.option-text').textContent = gameState.currentChallenge.options[index];
-    });
+    // 更新選項
+    const optionsContainer = document.querySelector('.options-container');
+    if (optionsContainer) {
+        optionsContainer.innerHTML = gameState.currentChallenge.options.map((option, index) => `
+            <div class="option" onclick="selectOption(${index})">
+                <div class="option-content">
+                    <span class="option-number">${index + 1}</span>
+                    <span class="option-text">${option}</span>
+                </div>
+            </div>
+        `).join('');
+        
+        // 重新綁定選項元素
+        options = document.querySelectorAll('.option');
+    }
     
     gameState.selectedOption = null;
     gameState.canAnswer = true;
-    options.forEach(option => option.classList.remove('selected'));
     
     startTimer();
     updateUI();
@@ -842,6 +897,43 @@ function nextChallenge() {
 
 // 開始遊戲
 function startGame() {
+    // 確保遊戲容器存在
+    const gameContainer = document.querySelector('.game-container');
+    if (!gameContainer) {
+        // 創建遊戲容器
+        const container = document.createElement('div');
+        container.className = 'game-container';
+        container.innerHTML = `
+            <div class="challenge-container">
+                <div class="challenge-header">
+                    <h2>Level <span id="level">1</span> Challenge <span id="challenge-number">1</span></h2>
+                    <div class="timer">Time: <span id="time-left">30</span>s</div>
+                </div>
+                <pre><code id="challenge-code" class="javascript"></code></pre>
+                <div class="hint-box">
+                    <span class="hint-icon">💡</span>
+                    <span id="challenge-hint"></span>
+                </div>
+                <div class="options-container"></div>
+            </div>
+            <div class="game-status">
+                <div class="score-display">Score: <span id="score">0</span></div>
+                <div class="health-bar">
+                    <div class="health-fill"></div>
+                    <span class="health-text">100%</span>
+                </div>
+                <div class="combo-meter">
+                    Combo <span id="combo-count">x1</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill"></div>
+                    <span class="progress-text">0/10</span>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(container);
+    }
+
     gameState.isPlaying = true;
     gameState.level = 1;
     gameState.score = 0;
@@ -850,12 +942,11 @@ function startGame() {
     gameState.challengesCompleted = 0;
     gameState.startTime = Date.now();
     
-    // 初始化音效
-    initializeAudio();
-    backgroundMusic.play().catch(e => console.log('背景音樂播放失敗:', e));
-    
     // 隱藏教學
-    tutorial.style.display = 'none';
+    const tutorial = document.getElementById('tutorial');
+    if (tutorial) {
+        tutorial.style.display = 'none';
+    }
     
     // 更新UI
     updateUI();
