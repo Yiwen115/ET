@@ -2,15 +2,28 @@
 const gameState = {
     isPlaying: false,
     health: 100,
-    codeQuality: 0,
+    achievements: [],
     streak: 0,
+    wrongStreak: 0,
     currentChallenge: null,
     selectedOption: null,
     canAnswer: false,
     timer: null,
     timeLeft: 0,
     leftHandGesture: null,
-    rightHandGesture: null
+    rightHandGesture: null,
+    usedKeyboard: false,
+    lastSecondCounter: 0,
+    quickAnswerStreak: 0,
+    lastAnswerTime: 0,
+    context: {
+        wrongStreak: 0,
+        streak: 0,
+        isCorrect: false,
+        usedKeyboard: false,
+        lastSecondCounter: 0,
+        quickAnswerStreak: 0
+    }
 };
 
 // 遊戲配置
@@ -360,6 +373,252 @@ hands.setOptions({
     minTrackingConfidence: 0.5
 });
 
+// 特效和成就系統
+const effectsSystem = {
+    snowflakes: [],
+    raindrops: [],
+    stars: [],
+    currentEffect: null,
+    container: null,
+    achievements: [],
+
+    init() {
+        // 創建特效容器
+        this.container = document.createElement('div');
+        this.container.className = 'effects-container';
+        document.body.appendChild(this.container);
+
+        // 創建成就容器
+        this.achievementsContainer = document.createElement('div');
+        this.achievementsContainer.className = 'achievements-container';
+        document.body.appendChild(this.achievementsContainer);
+
+        // 創建特效強度指示器
+        this.intensityIndicator = document.createElement('div');
+        this.intensityIndicator.className = 'effects-intensity';
+        for (let i = 0; i < 5; i++) {
+            const dot = document.createElement('div');
+            dot.className = 'intensity-dot';
+            this.intensityIndicator.appendChild(dot);
+        }
+        document.body.appendChild(this.intensityIndicator);
+    },
+
+    // 更新特效強度指示器
+    updateIntensity(level) {
+        const dots = this.intensityIndicator.querySelectorAll('.intensity-dot');
+        dots.forEach((dot, index) => {
+            dot.classList.toggle('active', index < level);
+        });
+    },
+
+    // 創建下雪特效
+    createSnowflake() {
+        const snowflake = document.createElement('div');
+        snowflake.className = 'snowflake';
+        snowflake.textContent = '❄';
+        snowflake.style.left = Math.random() * 100 + 'vw';
+        snowflake.style.animationDuration = (Math.random() * 3 + 2) + 's';
+        this.container.appendChild(snowflake);
+        this.snowflakes.push(snowflake);
+        
+        snowflake.addEventListener('animationend', () => {
+            snowflake.remove();
+            this.snowflakes = this.snowflakes.filter(s => s !== snowflake);
+        });
+    },
+
+    // 創建下雨特效
+    createRaindrop() {
+        const raindrop = document.createElement('div');
+        raindrop.className = 'raindrop';
+        raindrop.style.left = Math.random() * 100 + 'vw';
+        raindrop.style.animationDuration = (Math.random() * 0.5 + 0.5) + 's';
+        this.container.appendChild(raindrop);
+        this.raindrops.push(raindrop);
+        
+        raindrop.addEventListener('animationend', () => {
+            raindrop.remove();
+            this.raindrops = this.raindrops.filter(r => r !== raindrop);
+        });
+    },
+
+    // 創建星星特效
+    createStar() {
+        const star = document.createElement('div');
+        star.className = 'star';
+        star.style.left = Math.random() * 100 + 'vw';
+        star.style.top = Math.random() * 100 + 'vh';
+        star.style.width = star.style.height = (Math.random() * 3 + 2) + 'px';
+        star.style.animationDuration = (Math.random() * 2 + 1) + 's';
+        this.container.appendChild(star);
+        this.stars.push(star);
+        
+        setTimeout(() => {
+            star.remove();
+            this.stars = this.stars.filter(s => s !== star);
+        }, 3000);
+    },
+
+    // 顯示成就
+    showAchievement(title, description, icon) {
+        const achievement = document.createElement('div');
+        achievement.className = 'achievement';
+        achievement.innerHTML = `
+            <div class="achievement-icon">${icon}</div>
+            <div class="achievement-content">
+                <div class="achievement-title">${title}</div>
+                <div class="achievement-description">${description}</div>
+            </div>
+        `;
+        this.achievementsContainer.appendChild(achievement);
+        
+        achievement.addEventListener('animationend', (e) => {
+            if (e.animationName === 'fadeOut') {
+                achievement.remove();
+            }
+        });
+    },
+
+    // 顯示連擊特效
+    showStreakEffect(streak) {
+        const effect = document.createElement('div');
+        effect.className = 'streak-effect';
+        effect.textContent = `${streak} 連擊！`;
+        document.body.appendChild(effect);
+        
+        effect.addEventListener('animationend', () => {
+            effect.remove();
+        });
+    },
+
+    // 開始特效
+    startEffect(type, intensity = 1) {
+        this.stopEffect();
+        this.currentEffect = type;
+        this.updateIntensity(intensity);
+
+        const effectInterval = setInterval(() => {
+            if (this.currentEffect !== type) {
+                clearInterval(effectInterval);
+                return;
+            }
+
+            for (let i = 0; i < intensity; i++) {
+                switch (type) {
+                    case 'snow':
+                        this.createSnowflake();
+                        break;
+                    case 'rain':
+                        this.createRaindrop();
+                        break;
+                    case 'stars':
+                        this.createStar();
+                        break;
+                }
+            }
+        }, 200);
+    },
+
+    // 停止特效
+    stopEffect() {
+        this.currentEffect = null;
+        this.updateIntensity(0);
+        this.container.innerHTML = '';
+        this.snowflakes = [];
+        this.raindrops = [];
+        this.stars = [];
+    }
+};
+
+// 成就定義
+const achievements = {
+    QUICK_THINKER: {
+        id: 'quick_thinker',
+        title: '4%仔',
+        description: '10秒內答對題目，這題簡單啦！',
+        icon: '⚡',
+        condition: (timeLeft) => timeLeft >= 10
+    },
+    PERFECT_STREAK: {
+        id: 'perfect_streak',
+        title: '起飛啦',
+        description: '5連擊！這就是實力！',
+        icon: '🚀',
+        condition: (streak) => streak >= 5
+    },
+    RETAKE_MASTER: {
+        id: 'retake_master',
+        title: '大二孤寂淚',
+        description: '連續答錯3次，重修系列收藏家',
+        icon: '😭',
+        condition: (wrongStreak) => wrongStreak >= 3
+    },
+    DEADLINE_FIGHTER: {
+        id: 'deadline_fighter',
+        title: '死線戰士',
+        description: '在最後1秒答題',
+        icon: '⏰',
+        condition: (timeLeft) => timeLeft === 1
+    },
+    LUCKY_GUESS: {
+        id: 'lucky_guess',
+        title: '蒙對大師',
+        description: '生命值低於20%時答對題目',
+        icon: '🎰',
+        condition: (health) => health <= 20
+    },
+    WEEKEND_CODER: {
+        id: 'weekend_coder',
+        title: '週末才開始寫',
+        description: '連續錯2題後答對',
+        icon: '🎮',
+        condition: (context) => context.wrongStreak >= 2 && context.isCorrect
+    },
+    STACK_OVERFLOW: {
+        id: 'stack_overflow',
+        title: 'Ctrl+C/V達人',
+        description: '不看題目直接選答案',
+        icon: '📋',
+        condition: (timeLeft) => timeLeft >= 19  // 超快回答
+    },
+    KEYBOARD_WARRIOR: {
+        id: 'keyboard_warrior',
+        title: '鍵盤俠',
+        description: '使用鍵盤而不是手勢操作',
+        icon: '⌨️',
+        condition: (context) => context.usedKeyboard
+    },
+    DEBUG_MASTER: {
+        id: 'debug_master',
+        title: '除錯天菜',
+        description: '從錯誤中學習並連續答對',
+        icon: '🐛',
+        condition: (context) => context.wrongStreak >= 1 && context.streak >= 2
+    },
+    COFFEE_ADDICT: {
+        id: 'coffee_addict',
+        title: '咖啡成癮者',
+        description: '深夜模式解鎖',
+        icon: '☕',
+        condition: () => new Date().getHours() >= 23 || new Date().getHours() <= 5
+    },
+    PROCRASTINATOR: {
+        id: 'procrastinator',
+        title: '拖延大師',
+        description: '每題都在最後3秒答題',
+        icon: '🦥',
+        condition: (context) => context.lastSecondCounter >= 3
+    },
+    SPEED_DEMON: {
+        id: 'speed_demon',
+        title: '手速超車',
+        description: '3秒內連續答對兩題',
+        icon: '⚡',
+        condition: (context) => context.quickAnswerStreak >= 2
+    }
+};
+
 // 初始化相機
 async function initializeCamera() {
     try {
@@ -544,21 +803,38 @@ function checkAnswer(selectedIndex) {
     const isCorrect = selectedIndex === gameState.currentChallenge.correct;
 
     if (isCorrect) {
-        // 計算獎勵
         const timeBonus = Math.floor(gameState.timeLeft / 2);
         gameState.streak = Math.min(config.maxStreak, gameState.streak + 1);
+        gameState.wrongStreak = 0;
         const streakBonus = (gameState.streak - 1) * config.streakBonus;
         
-        // 更新生命值和程式碼品質
         gameState.health = Math.min(config.maxHealth, 
             gameState.health + config.healthGainOnCorrect + streakBonus);
-        gameState.codeQuality += 10 + timeBonus + streakBonus;
+
+        checkAchievements(true);
+
+        if (gameState.streak >= 2) {
+            effectsSystem.showStreakEffect(gameState.streak);
+            
+            if (gameState.streak >= 5) {
+                effectsSystem.startEffect('stars', 5);
+            } else if (gameState.streak >= 4) {
+                effectsSystem.startEffect('snow', 4);
+            } else if (gameState.streak >= 3) {
+                effectsSystem.startEffect('rain', 3);
+            }
+        }
         
         showFeedback(true, gameState.currentChallenge.explanation, 
             `+${timeBonus} 時間獎勵\n+${streakBonus} 連擊獎勵！`);
     } else {
         gameState.health = Math.max(0, gameState.health - config.healthLossOnWrong);
         gameState.streak = 0;
+        gameState.wrongStreak++;
+        
+        checkAchievements(false);
+        
+        effectsSystem.stopEffect();
         showFeedback(false, gameState.currentChallenge.explanation);
     }
 
@@ -608,11 +884,93 @@ function updateUI() {
     if (healthText) healthText.textContent = `${Math.round(gameState.health)}%`;
     if (healthFill) healthFill.style.width = `${gameState.health}%`;
     
-    const codeQuality = document.querySelector('.code-quality');
-    if (codeQuality) codeQuality.textContent = gameState.codeQuality;
+    const achievementsDisplay = document.querySelector('.achievements-display');
+    if (achievementsDisplay) {
+        achievementsDisplay.innerHTML = gameState.achievements.map(id => {
+            const achievement = achievements[id];
+            return `
+                <div class="achievement-badge" title="${achievement.description}">
+                    <div class="achievement-icon">${achievement.icon}</div>
+                    <div class="achievement-name">${achievement.title}</div>
+                </div>
+            `;
+        }).join('');
+    }
     
     const streakCount = document.querySelector('.streak-count');
     if (streakCount) streakCount.textContent = gameState.streak;
+}
+
+// 檢查並授予成就
+function checkAchievements(isCorrect) {
+    // 更新上下文
+    gameState.context = {
+        wrongStreak: gameState.wrongStreak,
+        streak: gameState.streak,
+        isCorrect: isCorrect,
+        usedKeyboard: gameState.usedKeyboard,
+        lastSecondCounter: gameState.lastSecondCounter,
+        quickAnswerStreak: gameState.quickAnswerStreak
+    };
+
+    // 檢查時間相關成就
+    const now = Date.now();
+    if (now - gameState.lastAnswerTime <= 3000) {
+        gameState.quickAnswerStreak++;
+    } else {
+        gameState.quickAnswerStreak = 0;
+    }
+    gameState.lastAnswerTime = now;
+
+    // 檢查最後一秒答題
+    if (gameState.timeLeft <= 3) {
+        gameState.lastSecondCounter++;
+    } else {
+        gameState.lastSecondCounter = 0;
+    }
+
+    // 隨機成就檢查（20%機率觸發檢查）
+    if (Math.random() < 0.2) {
+        const randomAchievements = [
+            'COFFEE_ADDICT',
+            'KEYBOARD_WARRIOR',
+            'STACK_OVERFLOW',
+            'WEEKEND_CODER'
+        ];
+        const randomAchievement = randomAchievements[Math.floor(Math.random() * randomAchievements.length)];
+        if (!gameState.achievements.includes(randomAchievement)) {
+            const achievement = achievements[randomAchievement];
+            if (achievement.condition(gameState.context)) {
+                gameState.achievements.push(randomAchievement);
+                effectsSystem.showAchievement(
+                    achievement.title,
+                    achievement.description,
+                    achievement.icon
+                );
+            }
+        }
+    }
+
+    // 檢查所有成就
+    Object.entries(achievements).forEach(([key, achievement]) => {
+        if (!gameState.achievements.includes(key)) {
+            const conditionMet = achievement.condition(
+                key.includes('STREAK') ? gameState.streak :
+                key.includes('HEALTH') ? gameState.health :
+                key.includes('TIME') ? gameState.timeLeft :
+                gameState.context
+            );
+            
+            if (conditionMet) {
+                gameState.achievements.push(key);
+                effectsSystem.showAchievement(
+                    achievement.title,
+                    achievement.description,
+                    achievement.icon
+                );
+            }
+        }
+    });
 }
 
 // 開始計時器
@@ -650,7 +1008,6 @@ function updateTimerDisplay() {
 function startGame() {
     gameState.isPlaying = true;
     gameState.health = config.maxHealth;
-    gameState.codeQuality = 0;
     gameState.streak = 0;
     
     document.getElementById('tutorial').style.display = 'none';
@@ -699,7 +1056,20 @@ function endGame() {
         <div class="game-over-content">
             <h2>遊戲結束</h2>
             <div class="final-stats">
-                <p>程式碼品質分數：${gameState.codeQuality}</p>
+                <div class="achievements-summary">
+                    <h3>獲得的成就</h3>
+                    <div class="achievements-grid">
+                        ${gameState.achievements.map(id => {
+                            const achievement = achievements[id];
+                            return `
+                                <div class="achievement-badge" title="${achievement.description}">
+                                    <div class="achievement-icon">${achievement.icon}</div>
+                                    <div class="achievement-name">${achievement.title}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
                 <p>最高連擊數：${gameState.streak}</p>
             </div>
             <button onclick="location.reload()" class="restart-button">重新開始</button>
@@ -715,7 +1085,28 @@ function updateChallenge(challenge) {
     if (codeBlock) {
         codeBlock.textContent = challenge.code;
     }
-    updateOptions(challenge);
+
+    // 隨機打亂選項順序
+    const shuffledOptions = shuffleArray([...challenge.options]);
+    // 記錄正確答案的新位置
+    const newCorrectIndex = shuffledOptions.indexOf(challenge.options[challenge.correct]);
+    // 更新當前挑戰的正確答案索引
+    gameState.currentChallenge = {
+        ...challenge,
+        options: shuffledOptions,
+        correct: newCorrectIndex
+    };
+    
+    updateOptions(gameState.currentChallenge);
+}
+
+// Fisher-Yates 洗牌算法
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
 }
 
 // 下一個挑戰
@@ -735,11 +1126,20 @@ window.addEventListener('load', initializeCamera);
 document.addEventListener('keydown', (e) => {
     if (!gameState.isPlaying) return;
     
+    gameState.usedKeyboard = true;
+    
     switch (e.key) {
         case 'ArrowUp':
+            selectOption(0);
+            break;
+        case 'ArrowRight':
+            selectOption(1);
+            break;
         case 'ArrowDown':
-            const newIndex = e.key === 'ArrowUp' ? 0 : 1;
-            selectOption(newIndex);
+            selectOption(2);
+            break;
+        case 'ArrowLeft':
+            selectOption(3);
             break;
         case 'Enter':
             if (gameState.selectedOption !== null) {
@@ -750,4 +1150,9 @@ document.addEventListener('keydown', (e) => {
             pauseGame();
             break;
     }
+});
+
+// 在遊戲開始時初始化特效系統
+window.addEventListener('load', () => {
+    effectsSystem.init();
 }); 
