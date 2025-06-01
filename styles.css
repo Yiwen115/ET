@@ -24,8 +24,6 @@ body {
     color: var(--text-color);
     min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: center;
     overflow: hidden;
 }
 
@@ -70,35 +68,30 @@ body {
 }
 
 .game-container {
-    width: 100vw;
+    margin-left: 50px; /* Space for activity bar */
+    width: calc(100vw - 50px);
     height: 100vh;
     display: grid;
-    grid-template-columns: 350px 1fr;
+    grid-template-columns: 400px 1fr;
     gap: 20px;
     padding: 20px;
-    background: linear-gradient(135deg, rgba(0,0,0,0.9) 0%, rgba(10,10,42,0.95) 100%);
+    background: var(--background-color);
 }
 
 .sidebar {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 20px;
-    padding: 20px;
+    height: calc(100vh - 40px);
     display: flex;
     flex-direction: column;
     gap: 20px;
-    border: 1px solid rgba(0, 255, 255, 0.1);
-    backdrop-filter: blur(10px);
 }
 
 .camera-container {
     width: 100%;
     aspect-ratio: 4/3;
     position: relative;
-    border-radius: 15px;
+    border-radius: 8px;
     overflow: hidden;
-    border: 2px solid var(--accent-color);
-    background: rgba(0, 0, 0, 0.5);
-    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    margin-top: 10px;
 }
 
 #input-video, #hand-canvas {
@@ -118,33 +111,32 @@ body {
     bottom: 0;
     left: 0;
     width: 100%;
-    padding: 15px;
+    padding: 10px;
     background: rgba(0, 0, 0, 0.8);
     display: flex;
     justify-content: space-between;
     gap: 10px;
-    z-index: 10;
 }
 
 .hand-guide {
     flex: 1;
-    padding: 10px;
-    border-radius: 10px;
-    font-size: 14px;
+    padding: 8px;
+    border-radius: 6px;
+    font-size: 12px;
     text-align: center;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .hand-guide.left {
-    background: rgba(0, 255, 0, 0.2);
+    background: rgba(0, 255, 0, 0.1);
     border-left: 3px solid #00ff00;
 }
 
 .hand-guide.right {
-    background: rgba(255, 0, 0, 0.2);
+    background: rgba(255, 0, 0, 0.1);
     border-right: 3px solid #ff0000;
 }
 
@@ -169,17 +161,17 @@ body {
 }
 
 .stat-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stat-label {
-    color: var(--accent-color);
-    font-size: 14px;
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-size: 14px;
 }
 
 .stat-value {
@@ -189,18 +181,15 @@ body {
 }
 
 .health-bar {
-    width: 100%;
-    height: 20px;
+    height: 8px;
     background: rgba(255, 0, 0, 0.2);
-    border-radius: 10px;
+    border-radius: 4px;
     overflow: hidden;
-    position: relative;
 }
 
 .health-fill {
-    width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, #ff0000, #ff6b6b);
+    background: linear-gradient(90deg, var(--success-color), var(--accent-color));
     transition: width 0.3s ease;
 }
 
@@ -215,13 +204,13 @@ body {
 }
 
 .timer-container {
-    background: rgba(0, 0, 0, 0.8);
-    padding: 15px 25px;
-    border-radius: 15px;
-    border: 2px solid var(--accent-color);
     display: flex;
     align-items: center;
-    gap: 15px;
+    gap: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    border: 1px solid var(--accent-color);
 }
 
 .timer-container::before {
@@ -232,29 +221,23 @@ body {
 
 .timer-value {
     font-family: 'Press Start 2P', cursive;
-    font-size: 32px;
-    color: var(--text-color);
-    min-width: 60px;
-    text-align: center;
-    text-shadow: 0 0 10px var(--accent-color);
+    font-size: 24px;
+    color: var(--accent-color);
 }
 
 .streak-badge {
-    position: absolute;
-    top: 20px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    padding: 10px;
-    border-radius: 10px;
-    border: 1px solid var(--primary-color);
     display: flex;
     align-items: center;
     gap: 8px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    border: 1px solid var(--primary-color);
 }
 
 .streak-count {
     font-family: 'Press Start 2P', cursive;
-    font-size: 18px;
+    font-size: 24px;
     color: var(--primary-color);
 }
 
@@ -379,13 +362,12 @@ body {
 }
 
 .main-game-area {
-    position: relative;
-    border-radius: 25px;
+    background: #252526;
+    border-radius: 8px;
     overflow: hidden;
-    background: rgba(0, 0, 0, 0.3);
-    border: 2px solid var(--accent-color);
     display: flex;
     flex-direction: column;
+    height: calc(100vh - 40px);
 }
 
 #game-canvas {
@@ -395,14 +377,12 @@ body {
 }
 
 .challenge-container {
-    position: absolute;
-    inset: 0;
+    flex: 1;
     display: grid;
-    grid-template-rows: auto 1fr auto;
-    padding: 30px;
-    gap: 30px;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(10px);
+    grid-template-rows: 1fr auto;
+    gap: 20px;
+    padding: 20px;
+    position: relative;
 }
 
 .challenge-header {
@@ -421,20 +401,21 @@ body {
 }
 
 .code-block {
-    background: rgba(0, 0, 0, 0.8);
-    border-radius: 20px;
-    padding: 30px;
-    border: 2px solid var(--accent-color);
+    background: #1e1e1e;
+    border-radius: 8px;
+    padding: 20px 20px 20px 60px;
     position: relative;
-    width: 90%;
-    margin: 0 auto;
+    font-family: 'Fira Code', monospace;
+    font-size: 16px;
+    line-height: 1.5;
+    overflow: auto;
 }
 
 .code-block::before {
     content: 'Question';
     position: absolute;
     top: -15px;
-    left: 20px;
+    left: 40px;
     background: var(--background-color);
     padding: 5px 15px;
     color: var(--accent-color);
@@ -455,46 +436,32 @@ body {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-template-rows: repeat(3, 1fr);
-    gap: 20px;
+    gap: 15px;
     padding: 20px;
-    width: 90%;
-    margin: 0 auto;
-    aspect-ratio: 1;
-    max-height: 600px;
+    max-height: 300px;
 }
 
 .option {
     background: rgba(255, 255, 255, 0.05);
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    color: var(--text-color);
-    transition: all 0.3s ease;
+    font-size: 16px;
+    transition: all 0.2s ease;
     cursor: pointer;
-    backdrop-filter: blur(5px);
 }
-
-.option:nth-child(1) { grid-area: 1 / 2 / 2 / 3; }
-.option:nth-child(2) { grid-area: 2 / 3 / 3 / 4; }
-.option:nth-child(3) { grid-area: 3 / 2 / 4 / 3; }
-.option:nth-child(4) { grid-area: 2 / 1 / 3 / 2; }
-.option:nth-child(5) { grid-area: 2 / 2 / 3 / 3; }
 
 .option:hover {
     background: rgba(255, 255, 255, 0.1);
-    transform: translateY(-5px);
-    box-shadow: 0 5px 20px rgba(0, 255, 255, 0.3);
+    transform: translateY(-2px);
 }
 
 .option.selected {
     border-color: var(--primary-color);
     background: rgba(0, 255, 157, 0.1);
-    transform: scale(1.05);
-    box-shadow: 0 0 30px rgba(0, 255, 157, 0.3);
 }
 
 .option.correct {
@@ -565,12 +532,12 @@ body {
     background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
     border: none;
     padding: 12px 30px;
-    border-radius: 10px;
+    border-radius: 8px;
     color: var(--background-color);
     font-family: 'Press Start 2P', cursive;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 }
 
 .game-button:hover {
@@ -588,47 +555,48 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 100;
+    z-index: 2000;
 }
 
 .tutorial-content {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 40px;
-    border-radius: 20px;
-    text-align: center;
-    border: 2px solid var(--accent-color);
-    max-width: 600px;
+    width: 600px;
+}
+
+.tutorial-content h2 {
+    color: var(--primary-color);
+    margin-bottom: 30px;
 }
 
 .tutorial-steps {
-    margin: 30px 0;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 15px;
+    margin-bottom: 30px;
 }
 
 .tutorial-step {
     display: flex;
     align-items: center;
     gap: 15px;
+    padding: 12px;
     background: rgba(255, 255, 255, 0.05);
-    padding: 15px;
-    border-radius: 10px;
-    transition: transform 0.3s ease;
+    border-radius: 8px;
+    transition: transform 0.2s ease;
 }
 
 .tutorial-step:hover {
     transform: translateX(10px);
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .step-icon {
-    font-size: 24px;
-    background: rgba(255, 255, 255, 0.1);
     width: 40px;
     height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 24px;
+    background: rgba(255, 255, 255, 0.1);
     border-radius: 50%;
 }
 
@@ -1254,8 +1222,8 @@ body {
 
 /* Terminal-like scrollbar */
 ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
 }
 
 ::-webkit-scrollbar-track {
@@ -1264,7 +1232,7 @@ body {
 
 ::-webkit-scrollbar-thumb {
     background: #424242;
-    border-radius: 5px;
+    border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -1278,14 +1246,14 @@ body {
     top: 0;
     bottom: 0;
     width: 40px;
-    padding: 30px 5px;
+    padding: 20px 8px;
     background: rgba(0, 0, 0, 0.3);
-    color: var(--line-number-color);
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
     font-family: 'Fira Code', monospace;
     font-size: 12px;
+    color: var(--line-number-color);
     text-align: right;
     user-select: none;
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 /* Terminal window style */
@@ -1295,6 +1263,7 @@ body {
     border-radius: 10px;
     padding: 25px;
     position: relative;
+    margin-top: 25px;
 }
 
 .terminal-header {
@@ -1309,6 +1278,13 @@ body {
     align-items: center;
     padding: 0 10px;
     gap: 5px;
+}
+
+.terminal-title {
+    color: var(--text-color);
+    font-size: 12px;
+    margin-left: 10px;
+    font-family: 'Fira Code', monospace;
 }
 
 .terminal-button {
@@ -1356,7 +1332,7 @@ body {
 .status-bar {
     position: fixed;
     bottom: 0;
-    left: 0;
+    left: 50px;
     right: 0;
     height: 22px;
     background: #007acc;
@@ -1503,13 +1479,11 @@ body {
 /* Add VS Code-like tab */
 .editor-tab {
     background: #2d2d2d;
-    padding: 8px 15px;
-    font-size: 12px;
-    color: var(--text-color);
-    border-bottom: 1px solid var(--accent-color);
+    padding: 8px 12px;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
+    border-bottom: 1px solid var(--accent-color);
 }
 
 .editor-tab::before {
@@ -1547,10 +1521,28 @@ body {
 /* Add problems panel style */
 .problems-panel {
     background: #252526;
-    padding: 10px;
-    border-radius: 5px;
-    margin-top: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex: 1;
+}
+
+.panel-header {
+    background: #2d2d2d;
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.panel-icon {
+    font-size: 14px;
+}
+
+.panel-title {
     font-size: 12px;
+    font-weight: bold;
+    color: var(--text-color);
 }
 
 .problem-item {
@@ -1646,6 +1638,7 @@ body {
     align-items: center;
     padding-top: 10px;
     gap: 10px;
+    z-index: 1001;
 }
 
 .activity-item {
@@ -1654,13 +1647,16 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 20px;
     color: var(--text-color);
     cursor: pointer;
     border-left: 2px solid transparent;
+    transition: all 0.2s ease;
 }
 
 .activity-item:hover {
     color: #fff;
+    background: rgba(255, 255, 255, 0.1);
 }
 
 .activity-item.active {
@@ -1680,4 +1676,280 @@ body {
     border-radius: 10px;
     min-width: 15px;
     text-align: center;
+}
+
+/* Ecosystem Container */
+.ecosystem-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 10;
+    overflow: hidden;
+}
+
+/* Base Environment Elements */
+.environment-layer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    transition: all 0.5s ease;
+}
+
+/* Growth Stages */
+.growth-stage {
+    position: absolute;
+    bottom: 0;
+    transition: all 0.8s ease;
+    transform-origin: bottom center;
+}
+
+/* Code Tree */
+.code-tree {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: all 1s ease;
+}
+
+.tree-trunk {
+    width: 4px;
+    background: var(--accent-color);
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: height 1s ease;
+}
+
+.tree-branch {
+    position: absolute;
+    background: var(--accent-color);
+    height: 2px;
+    transition: all 0.5s ease;
+}
+
+.tree-leaf {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    animation: glowPulse 2s infinite;
+}
+
+/* Growth Particles */
+.growth-particle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    animation: floatUp 3s ease-out infinite;
+}
+
+/* Environment Effects */
+.ambient-particle {
+    position: absolute;
+    pointer-events: none;
+    animation: float 20s linear infinite;
+}
+
+.firefly {
+    width: 4px;
+    height: 4px;
+    background: var(--primary-color);
+    border-radius: 50%;
+    animation: fireflyGlow 3s ease-in-out infinite;
+}
+
+.digital-rain {
+    color: var(--primary-color);
+    font-family: 'Fira Code', monospace;
+    font-size: 14px;
+    position: absolute;
+    animation: digitalRain 10s linear infinite;
+    opacity: 0.3;
+}
+
+.binary-cloud {
+    position: absolute;
+    color: var(--accent-color);
+    font-family: 'Fira Code', monospace;
+    font-size: 10px;
+    opacity: 0.2;
+    animation: float 15s linear infinite;
+}
+
+/* Progress Indicators */
+.ecosystem-level {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-family: 'Fira Code', monospace;
+    color: var(--primary-color);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--accent-color);
+}
+
+.ecosystem-stage {
+    font-size: 12px;
+    color: var(--text-color);
+}
+
+/* Achievement Display Update */
+.achievements-display {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 5px;
+    padding: 10px;
+}
+
+.achievement-icon {
+    width: 30px;
+    height: 30px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.achievement-icon::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.achievement-icon.new::after {
+    opacity: 1;
+    animation: pulse 1s infinite;
+}
+
+/* Animations */
+@keyframes glowPulse {
+    0%, 100% {
+        box-shadow: 0 0 5px var(--primary-color);
+        opacity: 0.8;
+    }
+    50% {
+        box-shadow: 0 0 15px var(--primary-color);
+        opacity: 1;
+    }
+}
+
+@keyframes floatUp {
+    0% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50px) scale(0);
+        opacity: 0;
+    }
+}
+
+@keyframes float {
+    0% {
+        transform: translateY(100%) translateX(-100%);
+    }
+    100% {
+        transform: translateY(-100%) translateX(100%);
+    }
+}
+
+@keyframes fireflyGlow {
+    0%, 100% {
+        opacity: 0.2;
+        transform: scale(0.8);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+@keyframes digitalRain {
+    0% {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+    10% {
+        opacity: 0.3;
+    }
+    90% {
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Growth Stages */
+.ecosystem-stage-1 .tree-trunk { height: 50px; }
+.ecosystem-stage-2 .tree-trunk { height: 100px; }
+.ecosystem-stage-3 .tree-trunk { height: 150px; }
+.ecosystem-stage-4 .tree-trunk { height: 200px; }
+.ecosystem-stage-5 .tree-trunk { height: 250px; }
+
+.ecosystem-stage-1 .tree-branch { width: 20px; }
+.ecosystem-stage-2 .tree-branch { width: 30px; }
+.ecosystem-stage-3 .tree-branch { width: 40px; }
+.ecosystem-stage-4 .tree-branch { width: 50px; }
+.ecosystem-stage-5 .tree-branch { width: 60px; }
+
+/* Environment Theme Variations */
+.theme-binary .ambient-particle {
+    font-family: 'Fira Code', monospace;
+    content: '01';
+    color: var(--primary-color);
+}
+
+.theme-matrix .ambient-particle {
+    font-family: 'Fira Code', monospace;
+    color: var(--primary-color);
+    text-shadow: 0 0 5px var(--primary-color);
+}
+
+.theme-cyber .ambient-particle {
+    background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
 } 
