@@ -549,7 +549,6 @@ const achievementSystem = {
             title: '4%仔',
             description: '10秒內答對題目',
             icon: '⚡',
-            category: 'gameplay',
             condition: (timeLeft) => timeLeft >= 10,
             hint: '試著快速且正確地回答問題'
         },
@@ -558,7 +557,6 @@ const achievementSystem = {
             title: '起飛啦',
             description: '達成5連擊',
             icon: '🚀',
-            category: 'gameplay',
             condition: (streak) => streak >= 5,
             hint: '連續答對5題'
         },
@@ -567,7 +565,6 @@ const achievementSystem = {
             title: '大二孤寂淚',
             description: '連續答錯3次',
             icon: '😭',
-            category: 'special',
             condition: (wrongStreak) => wrongStreak >= 3,
             hint: '不小心連續答錯3次'
         },
@@ -576,7 +573,6 @@ const achievementSystem = {
             title: '死線戰士',
             description: '在最後1秒答對',
             icon: '⏰',
-            category: 'special',
             condition: (timeLeft) => timeLeft === 1,
             hint: '在倒數最後一秒答題'
         },
@@ -585,7 +581,6 @@ const achievementSystem = {
             title: '蒙對大師',
             description: '生命值低於20%時答對',
             icon: '🎰',
-            category: 'special',
             condition: (health) => health <= 20,
             hint: '在生命值很低時仍然答對'
         },
@@ -594,7 +589,6 @@ const achievementSystem = {
             title: '你在玩猜猜樂嗎？',
             description: '連續錯3題後答對',
             icon: '🎲',
-            category: 'hidden',
             condition: (context) => context.wrongStreak >= 3 && context.isCorrect,
             hint: '???'
         },
@@ -603,7 +597,6 @@ const achievementSystem = {
             title: '鍵盤俠',
             description: '使用鍵盤而不是手勢操作',
             icon: '⌨️',
-            category: 'hidden',
             condition: (context) => context.usedKeyboard,
             hint: '???'
         },
@@ -612,7 +605,6 @@ const achievementSystem = {
             title: '複製貼上工程師',
             description: '連續選擇同一個選項3次',
             icon: '📋',
-            category: 'special',
             condition: (context) => context.sameAnswerCount >= 3,
             hint: '你最愛的按鍵組合是什麼？'
         },
@@ -621,7 +613,6 @@ const achievementSystem = {
             title: '咖啡因溢出',
             description: '生命值超過100%',
             icon: '☕',
-            category: 'special',
             condition: (context) => context.health > 100,
             hint: '喝太多咖啡了吧！'
         },
@@ -630,7 +621,6 @@ const achievementSystem = {
             title: '打瞌睡工程師',
             description: '超過5秒沒有任何操作',
             icon: '😴',
-            category: 'hidden',
             condition: (context) => context.idleTime > 5000,
             hint: '也許該休息一下？'
         },
@@ -639,7 +629,6 @@ const achievementSystem = {
             title: '慌亂大師',
             description: '在最後3秒內瘋狂切換選項',
             icon: '😱',
-            category: 'hidden',
             condition: (context) => context.panicSwitches >= 5,
             hint: '冷靜點，深呼吸！'
         },
@@ -648,7 +637,6 @@ const achievementSystem = {
             title: 'Stack Overflow 戰士',
             description: '不看題目直接選答案',
             icon: '💻',
-            category: 'special',
             condition: (context) => context.answerTime < 1,
             hint: '這題我在 Stack Overflow 上看過！'
         },
@@ -657,7 +645,6 @@ const achievementSystem = {
             title: '小黃鴨除錯法',
             description: '對著攝像頭說話超過3秒',
             icon: '🦆',
-            category: 'hidden',
             condition: (context) => context.talkingTime > 3000,
             hint: '試著跟你的程式對話'
         },
@@ -666,7 +653,6 @@ const achievementSystem = {
             title: 'PM的噩夢',
             description: '連續更改答案5次後答對',
             icon: '😈',
-            category: 'special',
             condition: (context) => context.changeCount >= 5 && context.isCorrect,
             hint: '需求一直在改...'
         },
@@ -675,97 +661,28 @@ const achievementSystem = {
             title: '捕蟲達人',
             description: '在答題過程中抓到一隻蟲',
             icon: '🐛',
-            category: 'hidden',
             condition: (context) => context.caughtBug,
             hint: '仔細觀察螢幕...'
         }
     },
 
     init() {
-        // 初始化成就面板
-        this.panel = document.querySelector('.achievements-panel');
-        this.list = document.querySelector('.achievements-list');
-        this.categoryButtons = document.querySelectorAll('.category-btn');
-        
-        // 綁定事件
-        document.querySelector('.activity-item[title="成就系統"]').addEventListener('click', () => {
-            this.togglePanel();
-        });
-        
-        document.querySelector('.close-achievements').addEventListener('click', () => {
-            this.hidePanel();
-        });
-        
-        this.categoryButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                this.filterAchievements(btn.dataset.category);
-            });
-        });
-
-        // 初始化成就列表
-        this.renderAchievements();
-    },
-
-    togglePanel() {
-        this.panel.classList.toggle('show');
-    },
-
-    hidePanel() {
-        this.panel.classList.remove('show');
-    },
-
-    filterAchievements(category) {
-        this.categoryButtons.forEach(btn => {
-            btn.classList.toggle('active', btn.dataset.category === category);
-        });
-        
-        this.renderAchievements(category);
-    },
-
-    renderAchievements(category = 'all') {
-        this.list.innerHTML = '';
-        
-        Object.values(this.achievements).forEach(achievement => {
-            if (category === 'all' || achievement.category === category) {
-                const isUnlocked = gameState.achievements.includes(achievement.id);
-                const card = document.createElement('div');
-                card.className = `achievement-card ${isUnlocked ? 'unlocked' : ''}`;
-                
-                card.innerHTML = `
-                    <div class="achievement-icon-wrapper">
-                        ${isUnlocked ? achievement.icon : '?'}
-                    </div>
-                    <div class="achievement-info">
-                        <div class="achievement-title">
-                            ${isUnlocked ? achievement.title : '???'}
-                        </div>
-                        <div class="achievement-description">
-                            ${isUnlocked ? achievement.description : achievement.hint}
-                        </div>
-                        ${isUnlocked ? `
-                            <div class="achievement-date">
-                                解鎖於 ${new Date().toLocaleDateString()}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-                
-                this.list.appendChild(card);
-            }
-        });
+        // 創建成就通知容器
+        this.achievementsContainer = document.createElement('div');
+        this.achievementsContainer.className = 'achievements-container';
+        document.body.appendChild(this.achievementsContainer);
     },
 
     unlockAchievement(id) {
         if (!gameState.achievements.includes(id)) {
             gameState.achievements.push(id);
             this.showUnlockNotification(this.achievements[id]);
-            this.renderAchievements();
         }
     },
 
     showUnlockNotification(achievement) {
         const notification = document.createElement('div');
-        notification.className = 'achievement-notification';
+        notification.className = 'achievement';
         notification.innerHTML = `
             <div class="achievement-icon">${achievement.icon}</div>
             <div class="achievement-content">
@@ -774,73 +691,13 @@ const achievementSystem = {
             </div>
         `;
         
-        document.body.appendChild(notification);
+        this.achievementsContainer.appendChild(notification);
         
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    },
-
-    // 添加搞笑效果
-    showFunnyEffect(type) {
-        switch(type) {
-            case 'coffee':
-                this.showCoffeeOverflow();
-                break;
-            case 'bug':
-                this.showBugAnimation();
-                break;
-            case 'panic':
-                this.showPanicEffect();
-                break;
-            case 'sleep':
-                this.showSleepyEffect();
-                break;
-        }
-    },
-
-    showCoffeeOverflow() {
-        const coffee = document.createElement('div');
-        coffee.className = 'coffee-overflow';
-        coffee.innerHTML = '☕'.repeat(20);
-        document.body.appendChild(coffee);
-        setTimeout(() => coffee.remove(), 3000);
-    },
-
-    showBugAnimation() {
-        const bug = document.createElement('div');
-        bug.className = 'bug-animation';
-        bug.innerHTML = '🐛';
-        bug.style.left = Math.random() * window.innerWidth + 'px';
-        document.body.appendChild(bug);
-        
-        let caught = false;
-        bug.addEventListener('click', () => {
-            if (!caught) {
-                caught = true;
-                bug.style.animation = 'bugCaught 0.5s forwards';
-                this.unlockAchievement('BUG_HUNTER');
-                setTimeout(() => bug.remove(), 500);
+        notification.addEventListener('animationend', (e) => {
+            if (e.animationName === 'fadeOut') {
+                notification.remove();
             }
         });
-
-        setTimeout(() => {
-            if (!caught) bug.remove();
-        }, 5000);
-    },
-
-    showPanicEffect() {
-        const container = document.querySelector('.game-container');
-        container.classList.add('panic');
-        setTimeout(() => container.classList.remove('panic'), 3000);
-    },
-
-    showSleepyEffect() {
-        const zzz = document.createElement('div');
-        zzz.className = 'sleepy-effect';
-        zzz.innerHTML = '💤';
-        document.body.appendChild(zzz);
-        setTimeout(() => zzz.remove(), 3000);
     }
 };
 
@@ -918,19 +775,26 @@ hands.onResults((results) => {
         handCtx.save();
         handCtx.scale(-1, 1);
         handCtx.translate(-handCanvas.width, 0);
+        
+        // 先繪製攝像頭影像
         handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
-
+        
         results.multiHandLandmarks.forEach((landmarks, index) => {
             const handedness = results.multiHandedness[index];
             const isLeft = handedness.label.toLowerCase() === 'left';
             const color = isLeft ? '#00FF00' : '#FF0000';
             
-            // 只繪製關鍵點，減少繪製量
-            drawLandmarks(handCtx, [landmarks[0], landmarks[8]], {
+            // 繪製所有手部關鍵點
+            drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, {
                 color: color,
-                lineWidth: 2,
-                radius: 4,
-                fillColor: color
+                lineWidth: 2
+            });
+            
+            drawLandmarks(handCtx, landmarks, {
+                color: color,
+                lineWidth: 1,
+                radius: 3,
+                fillColor: isLeft ? '#00FF00' : '#FF0000'
             });
         });
 
@@ -946,7 +810,7 @@ hands.onResults((results) => {
                 const handType = isLeft ? 'right' : 'left'; // 因為鏡像效果需要反轉
                 const landmarks = results.multiHandLandmarks[index];
                 
-                // 簡化手勢判斷，只使用手腕和食指尖
+                // 手勢判斷
                 const wrist = landmarks[0];
                 const indexFinger = landmarks[8];
                 
@@ -992,20 +856,18 @@ function updateGestureHint(leftGesture, rightGesture) {
     const gestureHint = document.querySelector('.gesture-hint');
     if (!gestureHint) return;
 
-    const directions = ['上', '右', '下', '左'];
-    let hintText = '';
+    let hintText = '左手上下左右選擇答案，右手舉起確認';
     
     if (leftGesture !== null) {
-        hintText = `左手：${directions[leftGesture]} `;
+        const directions = ['上', '右', '下', '左'];
+        hintText = `選擇：${directions[leftGesture]} `;
     }
     
     if (rightGesture === 0) {
-        hintText += '右手：確認';
-    } else if (rightGesture === 2 && leftGesture === 2) {
-        hintText = '暫停遊戲';
+        hintText += '✓ 確認答案';
     }
 
-    gestureHint.textContent = hintText || '等待手勢...';
+    gestureHint.textContent = hintText;
 }
 
 // 選擇選項
@@ -1148,8 +1010,6 @@ function showFeedback(isCorrect, explanation, bonus = '') {
     feedback.innerHTML = `
         <div class="feedback-title">${isCorrect ? '正確！' : '錯誤！'}</div>
         <p class="explanation">${explanation}</p>
-        ${bonus ? `<div class="bonus-info">${bonus}</div>` : ''}
-        ${isCorrect ? `<div class="streak-info">連擊：${gameState.streak}</div>` : ''}
     `;
     
     document.querySelector('.challenge-container').appendChild(feedback);
@@ -1169,22 +1029,6 @@ function updateUI() {
     
     if (healthText) healthText.textContent = `${Math.round(gameState.health)}%`;
     if (healthFill) healthFill.style.width = `${gameState.health}%`;
-    
-    const achievementsDisplay = document.querySelector('.achievements-display');
-    if (achievementsDisplay) {
-        achievementsDisplay.innerHTML = gameState.achievements.map(id => {
-            const achievement = achievementSystem.achievements[id];
-            return `
-                <div class="achievement-badge" title="${achievement.description}">
-                    <div class="achievement-icon">${achievement.icon}</div>
-                    <div class="achievement-name">${achievement.title}</div>
-                </div>
-            `;
-        }).join('');
-    }
-    
-    const streakCount = document.querySelector('.streak-count');
-    if (streakCount) streakCount.textContent = gameState.streak;
 }
 
 // 檢查並授予成就
@@ -1293,23 +1137,6 @@ function endGame() {
     gameOverScreen.innerHTML = `
         <div class="game-over-content">
             <h2>遊戲結束</h2>
-            <div class="final-stats">
-                <div class="achievements-summary">
-                    <h3>獲得的成就</h3>
-                    <div class="achievements-grid">
-                        ${gameState.achievements.map(id => {
-                            const achievement = achievementSystem.achievements[id];
-                            return `
-                                <div class="achievement-badge" title="${achievement.description}">
-                                    <div class="achievement-icon">${achievement.icon}</div>
-                                    <div class="achievement-name">${achievement.title}</div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-                <p>最高連擊數：${gameState.streak}</p>
-            </div>
             <button onclick="location.reload()" class="restart-button">重新開始</button>
         </div>
     `;
