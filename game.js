@@ -31,7 +31,12 @@ const gameState = {
     panicSwitches: 0,
     changeCount: 0,
     talkingTime: 0,
-    caughtBug: false
+    caughtBug: false,
+    comboMultiplier: 1,
+    difficultyLevel: 1,
+    totalScore: 0,
+    perfectAnswers: 0,
+    quickAnswers: 0
 };
 
 // 遊戲配置
@@ -43,7 +48,33 @@ const config = {
     streakBonus: 5,          // 連擊獎勵
     maxStreak: 5,            // 最大連擊數
     challengeTime: 20,       // 每題時間
-    gestureThreshold: 0.15   // 手勢判定閾值
+    gestureThreshold: 0.15,   // 手勢判定閾值
+    minGestureConfidence: 0.8, // 手勢識別最低信心度
+    difficultyIncrease: 0.1,   // 難度增加係數
+    maxQuickAnswerTime: 3,     // 快速回答時間閾值（秒）
+    comboTimeWindow: 1000,     // 連擊時間窗口（毫秒）
+    maxComboMultiplier: 3      // 最大連擊倍數
+};
+
+// 新增：難度系統
+const difficultySystem = {
+    currentLevel: 1,
+    baseTime: config.challengeTime,
+    
+    increaseDifficulty() {
+        this.currentLevel++;
+        config.challengeTime = Math.max(
+            10, 
+            this.baseTime - (this.currentLevel * config.difficultyIncrease)
+        );
+        config.healthLossPerSecond *= 1.1;
+    },
+    
+    resetDifficulty() {
+        this.currentLevel = 1;
+        config.challengeTime = this.baseTime;
+        config.healthLossPerSecond = 0.5;
+    }
 };
 
 // 程式設計挑戰題庫
@@ -885,8 +916,16 @@ function updateOptions(challenge) {
         <div class="option" data-position="right" data-index="1">${challenge.options[1]}</div>
         <div class="option" data-position="bottom" data-index="2">${challenge.options[2]}</div>
         <div class="option" data-position="left" data-index="3">${challenge.options[3]}</div>
-        <div class="option" data-position="center">?</div>
     `;
+
+    // Add click event listeners to options
+    document.querySelectorAll('.option').forEach(option => {
+        option.addEventListener('click', () => {
+            if (!gameState.canAnswer) return;
+            const index = parseInt(option.dataset.index);
+            selectOption(index);
+        });
+    });
 }
 
 // 手勢處理
@@ -1192,7 +1231,7 @@ function checkAchievements(context) {
             try {
                 if (achievement.condition(context)) {
                     achievementSystem.unlockAchievement(id);
-                    console.log(`解鎖成就: ${achievement.title}`); // 添加調試信息
+                    console.log(`解鎖成就: ${achievement.title}`);
                 }
             } catch (error) {
                 console.error(`檢查成就 ${id} 時發生錯誤:`, error);
@@ -1225,296 +1264,105 @@ function startTimer() {
 
 // 更新計時器顯示
 function updateTimerDisplay() {
-    const timerElement = document.querySelector('.timer-value');
-    if (timerElement) {
-        timerElement.textContent = gameState.timeLeft;
-        timerElement.style.color = gameState.timeLeft <= 5 ? 'var(--error-color)' : 'var(--text-color)';
+    const timerDisplay = document.querySelector('.timer-display');
+    if (timerDisplay) {
+        timerDisplay.textContent = gameState.timeLeft.toString().padStart(2, '0');
     }
 }
 
-// 開始遊戲
-function startGame() {
-    gameState.isPlaying = true;
-    gameState.health = config.maxHealth;
-    gameState.streak = 0;
+// 新增：連擊系統增強
+function updateCombo(isCorrect, answerTime) {
+    if (isCorrect) {
+        const now = Date.now();
+        if (now - gameState.lastAnswerTime < config.comboTimeWindow) {
+            gameState.comboMultiplier = Math.min(
+                config.maxComboMultiplier,
+                gameState.comboMultiplier + 0.5
+            );
+        } else {
+            gameState.comboMultiplier = 1;
+        }
+        gameState.lastAnswerTime = now;
+        
+        // 根據連擊倍數增加獎勵
+        const comboBonus = Math.floor(config.healthGainOnCorrect * (gameState.comboMultiplier - 1));
+        if (comboBonus > 0) {
+            showComboEffect(comboBonus);
+        }
+        
+        return comboBonus;
+    } else {
+        gameState.comboMultiplier = 1;
+        return 0;
+    }
+}
+
+// 新增：顯示連擊特效
+function showComboEffect(bonus) {
+    const effect = document.createElement('div');
+    effect.className = 'combo-effect';
+    effect.textContent = `COMBO! +${bonus}`;
+    document.body.appendChild(effect);
     
-    document.getElementById('tutorial').style.display = 'none';
+    effect.addEventListener('animationend', () => effect.remove());
+}
+
+// 新增：手勢識別增強
+function processHandGesture(landmarks, handedness) {
+    const confidence = calculateGestureConfidence(landmarks);
+    if (confidence < config.minGestureConfidence) return null;
+    
+    const gesture = recognizeGesture(landmarks);
+    if (gesture) {
+        showGestureEffect(gesture, handedness);
+    }
+    return gesture;
+}
+
+// 新增：計算手勢識別信心度
+function calculateGestureConfidence(landmarks) {
+    // 基於關鍵點的穩定性計算信心度
+    let totalDistance = 0;
+    for (let i = 1; i < landmarks.length; i++) {
+        const dx = landmarks[i].x - landmarks[i-1].x;
+        const dy = landmarks[i].y - landmarks[i-1].y;
+        totalDistance += Math.sqrt(dx*dx + dy*dy);
+    }
+    return 1 / (1 + totalDistance);
+}
+
+// 更新：遊戲狀態初始化
+function initializeGameState() {
+    Object.assign(gameState, {
+        isPlaying: false,
+        health: config.maxHealth,
+        achievements: [],
+        streak: 0,
+        wrongStreak: 0,
+        currentChallenge: null,
+        selectedOption: null,
+        canAnswer: false,
+        timer: null,
+        timeLeft: 0,
+        comboMultiplier: 1,
+        lastAnswerTime: 0,
+        difficultyLevel: 1,
+        totalScore: 0,
+        perfectAnswers: 0,
+        quickAnswers: 0
+    });
+}
+
+// 更新：開始遊戲
+function startGame() {
+    initializeGameState();
+    difficultySystem.resetDifficulty();
     updateUI();
     nextChallenge();
     startTimer();
-}
-
-// 暫停遊戲
-function pauseGame() {
-    if (!gameState.isPlaying) return;
     
-    gameState.isPlaying = false;
-    clearInterval(gameState.timer);
-    
-    const pauseMenu = document.createElement('div');
-    pauseMenu.className = 'pause-menu';
-    pauseMenu.innerHTML = `
-        <div class="pause-content">
-            <h2>遊戲暫停</h2>
-            <button onclick="resumeGame()">繼續遊戲</button>
-            <button onclick="location.reload()">重新開始</button>
-        </div>
-    `;
-    document.body.appendChild(pauseMenu);
+    // 添加漸入動畫
+    document.querySelector('.game-container').classList.add('fade-in');
 }
 
-// 繼續遊戲
-function resumeGame() {
-    gameState.isPlaying = true;
-    const pauseMenu = document.querySelector('.pause-menu');
-    if (pauseMenu) {
-        pauseMenu.remove();
-    }
-    startTimer();
-}
-
-// 結束遊戲
-function endGame() {
-    gameState.isPlaying = false;
-    clearInterval(gameState.timer);
-    
-    const gameOverScreen = document.createElement('div');
-    gameOverScreen.className = 'game-over-screen';
-    gameOverScreen.innerHTML = `
-        <div class="game-over-content">
-            <h2>遊戲結束</h2>
-            <div class="final-stats">
-                <div class="achievements-summary">
-                    <h3>獲得的成就</h3>
-                    <div class="achievements-grid">
-                        ${gameState.achievements.map(id => {
-                            const achievement = achievementSystem.achievements[id];
-                            return `
-                                <div class="achievement-badge" title="${achievement.description}">
-                                    <div class="achievement-icon">${achievement.icon}</div>
-                                    <div class="achievement-name">${achievement.title}</div>
-                                </div>
-                            `;
-                        }).join('')}
-                    </div>
-                </div>
-                <p>最高連擊數：${gameState.streak}</p>
-            </div>
-            <button onclick="location.reload()" class="restart-button">重新開始</button>
-        </div>
-    `;
-    
-    document.body.appendChild(gameOverScreen);
-}
-
-// 更新挑戰
-function updateChallenge(challenge) {
-    const codeBlock = document.querySelector('.code-block pre');
-    if (codeBlock) {
-        codeBlock.textContent = challenge.code;
-    }
-
-    // 隨機打亂選項順序
-    const shuffledOptions = shuffleArray([...challenge.options]);
-    // 記錄正確答案的新位置
-    const newCorrectIndex = shuffledOptions.indexOf(challenge.options[challenge.correct]);
-    // 更新當前挑戰的正確答案索引
-    gameState.currentChallenge = {
-        ...challenge,
-        options: shuffledOptions,
-        correct: newCorrectIndex
-    };
-    
-    updateOptions(gameState.currentChallenge);
-}
-
-// Fisher-Yates 洗牌算法
-function shuffleArray(array) {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-    }
-    return array;
-}
-
-// 下一個挑戰
-function nextChallenge() {
-    const randomIndex = Math.floor(Math.random() * challenges.length);
-    gameState.currentChallenge = challenges[randomIndex];
-    updateChallenge(gameState.currentChallenge);
-    gameState.selectedOption = null;
-    gameState.canAnswer = true;
-}
-
-// 事件監聽
-document.getElementById('start-game').addEventListener('click', startGame);
-window.addEventListener('load', initializeCamera);
-
-// 添加鍵盤控制（用於測試）
-document.addEventListener('keydown', (e) => {
-    if (!gameState.isPlaying) return;
-    
-    gameState.usedKeyboard = true;
-    
-    switch (e.key) {
-        case 'ArrowUp':
-            selectOption(0);
-            break;
-        case 'ArrowRight':
-            selectOption(1);
-            break;
-        case 'ArrowDown':
-            selectOption(2);
-            break;
-        case 'ArrowLeft':
-            selectOption(3);
-            break;
-        case 'Enter':
-            if (gameState.selectedOption !== null) {
-                checkAnswer(gameState.selectedOption);
-            }
-            break;
-        case 'Escape':
-            pauseGame();
-            break;
-    }
-});
-
-// 在遊戲開始時初始化特效系統
-window.addEventListener('load', () => {
-    effectsSystem.init();
-    achievementSystem.init();
-});
-
-// Weather Effects Control
-class WeatherEffects {
-    constructor() {
-        this.container = document.querySelector('.weather-container');
-        this.isRaining = false;
-        this.isSnowing = false;
-        this.maxParticles = 100;
-        this.particles = [];
-    }
-
-    startRain() {
-        if (this.isRaining) return;
-        this.isSnowing = false;
-        this.isRaining = true;
-        this.clearParticles();
-        this.createRain();
-    }
-
-    startSnow() {
-        if (this.isSnowing) return;
-        this.isRaining = false;
-        this.isSnowing = true;
-        this.clearParticles();
-        this.createSnow();
-    }
-
-    stopWeather() {
-        this.isRaining = false;
-        this.isSnowing = false;
-        this.clearParticles();
-    }
-
-    clearParticles() {
-        this.particles.forEach(particle => particle.remove());
-        this.particles = [];
-    }
-
-    createRain() {
-        if (!this.isRaining) return;
-
-        const raindrop = document.createElement('div');
-        raindrop.className = 'raindrop';
-        raindrop.style.left = `${Math.random() * 100}vw`;
-        raindrop.style.animationDuration = `${Math.random() * 1 + 0.5}s`;
-        this.container.appendChild(raindrop);
-        this.particles.push(raindrop);
-
-        // Remove raindrop after animation
-        raindrop.addEventListener('animationend', () => {
-            raindrop.remove();
-            this.particles = this.particles.filter(p => p !== raindrop);
-        });
-
-        // Continue creating raindrops
-        if (this.particles.length < this.maxParticles) {
-            requestAnimationFrame(() => this.createRain());
-        }
-    }
-
-    createSnow() {
-        if (!this.isSnowing) return;
-
-        const snowflake = document.createElement('div');
-        snowflake.className = 'snowflake';
-        snowflake.textContent = '❄';
-        snowflake.style.left = `${Math.random() * 100}vw`;
-        snowflake.style.animationDuration = `${Math.random() * 3 + 2}s`;
-        snowflake.style.opacity = Math.random() * 0.5 + 0.5;
-        snowflake.style.fontSize = `${Math.random() * 10 + 5}px`;
-        this.container.appendChild(snowflake);
-        this.particles.push(snowflake);
-
-        // Remove snowflake after animation
-        snowflake.addEventListener('animationend', () => {
-            snowflake.remove();
-            this.particles = this.particles.filter(p => p !== snowflake);
-        });
-
-        // Continue creating snowflakes
-        if (this.particles.length < this.maxParticles) {
-            requestAnimationFrame(() => this.createSnow());
-        }
-    }
-}
-
-// Initialize weather effects
-const weatherEffects = new WeatherEffects();
-
-// Update game logic to handle streak-based weather effects
-function updateStreak(newStreak) {
-    // ... existing streak update code ...
-
-    // Add weather effects based on streak
-    if (newStreak >= 5 && newStreak < 10) {
-        weatherEffects.startRain();
-    } else if (newStreak >= 10) {
-        weatherEffects.startSnow();
-    } else {
-        weatherEffects.stopWeather();
-    }
-}
-
-// 添加閒置檢測
-setInterval(() => {
-    if (gameState.isPlaying) {
-        gameState.idleTime = Date.now() - gameState.lastActionTime;
-        if (gameState.idleTime > 5000) {
-            const context = {
-                idleTime: gameState.idleTime,
-                isCorrect: false
-            };
-            checkAchievements(context);
-            achievementSystem.showFunnyEffect('sleep');
-        }
-    }
-}, 1000);
-
-// 隨機出現bug
-setInterval(() => {
-    if (gameState.isPlaying && Math.random() < 0.1) {
-        achievementSystem.showFunnyEffect('bug');
-    }
-}, 10000);
-
-// 修改 bug 點擊事件
-function handleBugClick() {
-    const context = {
-        caughtBug: true,
-        isCorrect: false
-    };
-    checkAchievements(context);
-} 
+// 其他函數和事件處理...
