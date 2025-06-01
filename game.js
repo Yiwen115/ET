@@ -31,7 +31,9 @@ const gameState = {
     panicSwitches: 0,
     changeCount: 0,
     talkingTime: 0,
-    caughtBug: false
+    caughtBug: false,
+    sleepyEffectShown: false,
+    idleChecker: null
 };
 
 // 遊戲配置
@@ -376,8 +378,8 @@ const hands = new Hands({
 
 hands.setOptions({
     maxNumHands: 2,
-    modelComplexity: 1,
-    minDetectionConfidence: 0.5,
+    modelComplexity: 0,  // 降低模型複雜度以提高性能
+    minDetectionConfidence: 0.6,
     minTrackingConfidence: 0.5
 });
 
@@ -589,11 +591,11 @@ const achievementSystem = {
         },
         WEEKEND_CODER: {
             id: 'weekend_coder',
-            title: '週末才開始寫',
-            description: '連續錯2題後答對',
-            icon: '🎮',
+            title: '你在玩猜猜樂嗎？',
+            description: '連續錯3題後答對',
+            icon: '🎲',
             category: 'hidden',
-            condition: (context) => context.wrongStreak >= 2 && context.isCorrect,
+            condition: (context) => context.wrongStreak >= 3 && context.isCorrect,
             hint: '???'
         },
         KEYBOARD_WARRIOR: {
@@ -897,39 +899,37 @@ function updateOptions(challenge) {
     });
 }
 
-// 手勢處理
+// 優化手勢處理
+let lastFrameTime = 0;
+const minFrameTime = 1000 / 30; // 限制最高 30fps
+
 hands.onResults((results) => {
+    const currentTime = performance.now();
+    if (currentTime - lastFrameTime < minFrameTime) {
+        return; // 跳過過於頻繁的幀
+    }
+    lastFrameTime = currentTime;
+
     const handCtx = handCanvas.getContext('2d');
-    
-    // 清除畫布
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
-    
-    // 繪製鏡像的視訊
-    handCtx.save();
-    handCtx.scale(-1, 1);
-    handCtx.translate(-handCanvas.width, 0);
-    handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
-    handCtx.restore();
     
     if (results.multiHandLandmarks) {
         // 繪製手部標記
         handCtx.save();
         handCtx.scale(-1, 1);
         handCtx.translate(-handCanvas.width, 0);
+        handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
 
         results.multiHandLandmarks.forEach((landmarks, index) => {
             const handedness = results.multiHandedness[index];
             const isLeft = handedness.label.toLowerCase() === 'left';
             const color = isLeft ? '#00FF00' : '#FF0000';
             
-            drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, {
+            // 只繪製關鍵點，減少繪製量
+            drawLandmarks(handCtx, [landmarks[0], landmarks[8]], {
                 color: color,
-                lineWidth: 2
-            });
-            drawLandmarks(handCtx, landmarks, {
-                color: color,
-                lineWidth: 1,
-                radius: 3,
+                lineWidth: 2,
+                radius: 4,
                 fillColor: color
             });
         });
@@ -938,7 +938,6 @@ hands.onResults((results) => {
 
         // 遊戲控制邏輯
         if (gameState.isPlaying && gameState.canAnswer) {
-            // 重置手勢狀態
             let leftHandGesture = null;
             let rightHandGesture = null;
 
@@ -947,15 +946,13 @@ hands.onResults((results) => {
                 const handType = isLeft ? 'right' : 'left'; // 因為鏡像效果需要反轉
                 const landmarks = results.multiHandLandmarks[index];
                 
-                // 獲取手腕和食指的座標
+                // 簡化手勢判斷，只使用手腕和食指尖
                 const wrist = landmarks[0];
                 const indexFinger = landmarks[8];
                 
-                // 計算相對位移（考慮鏡像效果）
                 const deltaY = indexFinger.y - wrist.y;
                 const deltaX = -(indexFinger.x - wrist.x);
                 
-                // 判斷手勢方向
                 let gesture = null;
                 if (Math.abs(deltaY) > Math.abs(deltaX)) {
                     if (deltaY < -config.gestureThreshold) gesture = 0; // 上
@@ -965,26 +962,23 @@ hands.onResults((results) => {
                     else if (deltaX > config.gestureThreshold) gesture = 1; // 右
                 }
 
-                // 儲存手勢
                 if (handType === 'left') leftHandGesture = gesture;
                 else rightHandGesture = gesture;
             });
 
             // 更新遊戲狀態
-            gameState.leftHandGesture = leftHandGesture;
-            gameState.rightHandGesture = rightHandGesture;
-
-            // 處理手勢
-            if (leftHandGesture !== null) {
-                selectOption(leftHandGesture);
+            if (leftHandGesture !== gameState.leftHandGesture) {
+                gameState.leftHandGesture = leftHandGesture;
+                if (leftHandGesture !== null) {
+                    selectOption(leftHandGesture);
+                }
             }
 
-            if (rightHandGesture === 0 && gameState.selectedOption !== null) {
-                checkAnswer(gameState.selectedOption);
-            }
-
-            if (leftHandGesture === 2 && rightHandGesture === 2) {
-                pauseGame();
+            if (rightHandGesture !== gameState.rightHandGesture) {
+                gameState.rightHandGesture = rightHandGesture;
+                if (rightHandGesture === 0 && gameState.selectedOption !== null) {
+                    checkAnswer(gameState.selectedOption);
+                }
             }
 
             // 更新手勢提示
@@ -1244,11 +1238,19 @@ function startGame() {
     gameState.isPlaying = true;
     gameState.health = config.maxHealth;
     gameState.streak = 0;
+    gameState.sleepyEffectShown = false;
+    gameState.lastActionTime = Date.now();
+    
+    // 開始閒置檢查
+    gameState.idleChecker = setInterval(checkIdleTime, 1000);
     
     document.getElementById('tutorial').style.display = 'none';
     updateUI();
     nextChallenge();
     startTimer();
+    
+    // 隨機生成蟲子
+    startBugGenerator();
 }
 
 // 暫停遊戲
@@ -1284,6 +1286,7 @@ function resumeGame() {
 function endGame() {
     gameState.isPlaying = false;
     clearInterval(gameState.timer);
+    clearInterval(gameState.idleChecker);
     
     const gameOverScreen = document.createElement('div');
     gameOverScreen.className = 'game-over-screen';
@@ -1386,3 +1389,57 @@ document.addEventListener('keydown', (e) => {
             break;
     }
 });
+
+// 檢查閒置時間
+function checkIdleTime() {
+    const currentTime = Date.now();
+    gameState.idleTime = currentTime - gameState.lastActionTime;
+    
+    if (gameState.idleTime > 5000 && !gameState.sleepyEffectShown) {
+        gameState.sleepyEffectShown = true;
+        achievementSystem.showFunnyEffect('sleep');
+        achievementSystem.unlockAchievement('SLEEPY_CODER');
+    }
+}
+
+// 生成蟲子
+function startBugGenerator() {
+    const generateBug = () => {
+        if (!gameState.isPlaying) return;
+        
+        const bug = document.createElement('div');
+        bug.className = 'bug-animation';
+        bug.innerHTML = '🐛';
+        bug.style.left = Math.random() * (window.innerWidth - 50) + 'px';
+        document.body.appendChild(bug);
+        
+        let caught = false;
+        bug.addEventListener('click', () => {
+            if (!caught) {
+                caught = true;
+                bug.style.animation = 'bugCaught 0.5s forwards';
+                gameState.caughtBug = true;
+                achievementSystem.unlockAchievement('BUG_HUNTER');
+                setTimeout(() => bug.remove(), 500);
+            }
+        });
+
+        bug.addEventListener('animationend', () => {
+            if (!caught) {
+                bug.remove();
+            }
+        });
+    };
+
+    // 每30-60秒隨機生成一隻蟲子
+    const scheduleNextBug = () => {
+        if (!gameState.isPlaying) return;
+        const delay = Math.random() * 30000 + 30000; // 30-60秒
+        setTimeout(() => {
+            generateBug();
+            scheduleNextBug();
+        }, delay);
+    };
+
+    scheduleNextBug();
+}
