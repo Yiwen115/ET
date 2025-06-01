@@ -452,12 +452,19 @@ body {
 }
 
 .options-container {
+    position: relative;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(3, 1fr);
+    grid-template-areas:
+        ". top ."
+        "left . right"
+        ". bottom .";
+    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-rows: 1fr 1fr 1fr;
     gap: 15px;
     padding: 20px;
-    max-height: 300px;
+    max-height: 400px;
+    aspect-ratio: 1;
+    margin: 0 auto;
 }
 
 .option {
@@ -472,6 +479,22 @@ body {
     transition: all 0.2s ease;
     cursor: pointer;
     min-height: 60px;
+}
+
+.option[data-position="top"] {
+    grid-area: top;
+}
+
+.option[data-position="right"] {
+    grid-area: right;
+}
+
+.option[data-position="bottom"] {
+    grid-area: bottom;
+}
+
+.option[data-position="left"] {
+    grid-area: left;
 }
 
 .option:hover {
@@ -667,6 +690,11 @@ body {
     .status-bar {
         left: 0;
         bottom: 50px;
+    }
+
+    .options-container {
+        max-width: 300px;
+        aspect-ratio: 1;
     }
 }
 
@@ -2265,4 +2293,150 @@ body {
         transform: translate(-50%, -50%) scale(1);
         opacity: 0;
     }
+}
+
+/* 新增的動畫效果 */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+/* Combo 效果 */
+.combo-effect {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Press Start 2P', cursive;
+    font-size: 32px;
+    color: var(--primary-color);
+    text-shadow: 0 0 10px var(--primary-color);
+    animation: comboPopup 1s ease-out;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+@keyframes comboPopup {
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+    }
+}
+
+/* 手勢效果指示器 */
+.gesture-indicator {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-family: 'Fira Code', monospace;
+    color: var(--text-color);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    backdrop-filter: blur(5px);
+    border: 1px solid var(--accent-color);
+    z-index: 1000;
+}
+
+.gesture-confidence {
+    height: 4px;
+    width: 50px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.gesture-confidence-fill {
+    height: 100%;
+    background: var(--primary-color);
+    transition: width 0.2s ease;
+}
+
+/* 難度指示器 */
+.difficulty-indicator {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 10px;
+    border-radius: 8px;
+    font-family: 'Fira Code', monospace;
+    color: var(--text-color);
+    border: 1px solid var(--accent-color);
+    z-index: 1000;
+}
+
+.difficulty-level {
+    color: var(--primary-color);
+    font-weight: bold;
+}
+
+/* 優化選項容器的過渡效果 */
+.option {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.option:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.option.selected {
+    transform: scale(0.98);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 添加選項提示效果 */
+.option::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: inherit;
+    z-index: -1;
+}
+
+.option:hover::before {
+    opacity: 0.1;
+}
+
+/* 優化計時器顯示 */
+.timer-display {
+    font-family: 'Press Start 2P', cursive;
+    font-size: 24px;
+    color: var(--text-color);
+    text-shadow: 0 0 5px var(--accent-color);
+    transition: color 0.3s ease;
+}
+
+.timer-display.warning {
+    color: var(--error-color);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
 } 
