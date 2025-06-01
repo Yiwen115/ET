@@ -1087,95 +1087,102 @@ body {
     box-shadow: 0 0 10px var(--primary-color);
 }
 
-/* 成就徽章顯示 */
+/* Achievement Display Update */
 .achievements-display {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+    gap: 5px;
     padding: 10px;
     background: rgba(0, 0, 0, 0.3);
-    border-radius: 15px;
+    border-radius: 8px;
+    min-height: 50px;
+}
+
+.achievement-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--accent-color);
-    min-height: 60px;
-}
-
-.achievement-badge {
-    background: rgba(0, 0, 0, 0.8);
-    border: 2px solid var(--primary-color);
-    border-radius: 10px;
-    padding: 8px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    transition: all 0.3s ease;
-    cursor: help;
-}
-
-.achievement-badge:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
-}
-
-.achievement-badge .achievement-icon {
-    width: 30px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 20px;
+    position: relative;
+    transition: all 0.3s ease;
 }
 
-.achievement-badge .achievement-name {
-    font-size: 12px;
-    color: var(--text-color);
-    white-space: nowrap;
+.achievement-icon::after {
+    content: '';
+    position: absolute;
+    top: -2px;
+    right: -2px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
-/* 遊戲結束時的成就總結 */
-.achievements-summary {
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 15px;
-    padding: 20px;
-    margin: 20px 0;
-    border: 2px solid var(--accent-color);
+.achievement-icon.new {
+    animation: achievementUnlock 0.5s ease-out;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 10px var(--primary-color);
 }
 
-.achievements-summary h3 {
-    color: var(--primary-color);
-    font-family: 'Press Start 2P', cursive;
-    font-size: 16px;
-    margin-bottom: 15px;
-    text-align: center;
+.achievement-icon.new::after {
+    opacity: 1;
+    animation: pulse 1s infinite;
 }
 
-.achievements-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-    gap: 15px;
-    padding: 10px;
-}
-
-.achievements-grid .achievement-badge {
-    flex-direction: column;
-    text-align: center;
+/* Achievement Popup */
+.achievement-popup {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid var(--primary-color);
+    border-radius: 8px;
     padding: 15px;
+    color: var(--text-color);
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transform: translateX(120%);
+    animation: slideIn 0.5s forwards, fadeOut 0.5s 4.5s forwards;
+    z-index: 1000;
 }
 
-.achievements-grid .achievement-badge .achievement-icon {
+.achievement-popup-icon {
     width: 40px;
     height: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 24px;
-    margin-bottom: 8px;
 }
 
-.achievements-grid .achievement-badge .achievement-name {
+.achievement-popup-content {
+    flex: 1;
+}
+
+.achievement-popup-title {
+    color: var(--primary-color);
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.achievement-popup-description {
     font-size: 14px;
+    opacity: 0.8;
 }
 
-/* 成就解鎖動畫 */
-@keyframes unlockAchievement {
+/* Animations */
+@keyframes achievementUnlock {
     0% {
         transform: scale(0.5);
         opacity: 0;
@@ -1189,35 +1196,61 @@ body {
     }
 }
 
-.achievement-badge.new {
-    animation: unlockAchievement 0.5s ease-out;
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.5);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
-/* 移動裝置適配 */
-@media (max-width: 768px) {
-    .achievements-display {
-        padding: 5px;
-        gap: 5px;
+@keyframes slideIn {
+    from {
+        transform: translateX(120%);
     }
+    to {
+        transform: translateX(0);
+    }
+}
 
-    .achievement-badge {
-        padding: 5px;
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
     }
+    to {
+        opacity: 0;
+        transform: translateX(120%);
+    }
+}
 
-    .achievement-badge .achievement-icon {
-        width: 25px;
-        height: 25px;
-        font-size: 14px;
-    }
+/* Achievement Tooltip */
+.achievement-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid var(--accent-color);
+    border-radius: 4px;
+    padding: 8px;
+    font-size: 12px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 1000;
+}
 
-    .achievement-badge .achievement-name {
-        font-size: 10px;
-    }
-
-    .achievements-grid {
-        grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-        gap: 10px;
-    }
+.achievement-icon:hover .achievement-tooltip {
+    opacity: 1;
 }
 
 /* Terminal-like scrollbar */
@@ -1808,133 +1841,6 @@ body {
     color: var(--text-color);
 }
 
-/* Achievement Display Update */
-.achievements-display {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-    gap: 5px;
-    padding: 10px;
-}
-
-.achievement-icon {
-    width: 30px;
-    height: 30px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    position: relative;
-    transition: all 0.3s ease;
-}
-
-.achievement-icon::after {
-    content: '';
-    position: absolute;
-    top: -2px;
-    right: -2px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--primary-color);
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.achievement-icon.new::after {
-    opacity: 1;
-    animation: pulse 1s infinite;
-}
-
-/* Animations */
-@keyframes glowPulse {
-    0%, 100% {
-        box-shadow: 0 0 5px var(--primary-color);
-        opacity: 0.8;
-    }
-    50% {
-        box-shadow: 0 0 15px var(--primary-color);
-        opacity: 1;
-    }
-}
-
-@keyframes floatUp {
-    0% {
-        transform: translateY(0) scale(1);
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(-50px) scale(0);
-        opacity: 0;
-    }
-}
-
-@keyframes float {
-    0% {
-        transform: translateY(100%) translateX(-100%);
-    }
-    100% {
-        transform: translateY(-100%) translateX(100%);
-    }
-}
-
-@keyframes fireflyGlow {
-    0%, 100% {
-        opacity: 0.2;
-        transform: scale(0.8);
-    }
-    50% {
-        opacity: 1;
-        transform: scale(1.2);
-    }
-}
-
-@keyframes digitalRain {
-    0% {
-        transform: translateY(-100%);
-        opacity: 0;
-    }
-    10% {
-        opacity: 0.3;
-    }
-    90% {
-        opacity: 0.3;
-    }
-    100% {
-        transform: translateY(100%);
-        opacity: 0;
-    }
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-        opacity: 1;
-    }
-    50% {
-        transform: scale(1.5);
-        opacity: 0.5;
-    }
-    100% {
-        transform: scale(1);
-        opacity: 1;
-    }
-}
-
-/* Growth Stages */
-.ecosystem-stage-1 .tree-trunk { height: 50px; }
-.ecosystem-stage-2 .tree-trunk { height: 100px; }
-.ecosystem-stage-3 .tree-trunk { height: 150px; }
-.ecosystem-stage-4 .tree-trunk { height: 200px; }
-.ecosystem-stage-5 .tree-trunk { height: 250px; }
-
-.ecosystem-stage-1 .tree-branch { width: 20px; }
-.ecosystem-stage-2 .tree-branch { width: 30px; }
-.ecosystem-stage-3 .tree-branch { width: 40px; }
-.ecosystem-stage-4 .tree-branch { width: 50px; }
-.ecosystem-stage-5 .tree-branch { width: 60px; }
-
 /* Environment Theme Variations */
 .theme-binary .ambient-particle {
     font-family: 'Fira Code', monospace;
@@ -1952,4 +1858,479 @@ body {
     background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+/* Weather Effects Container */
+.weather-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 1000;
+    overflow: hidden;
+}
+
+/* Rain Effect */
+.raindrop {
+    position: absolute;
+    width: 2px;
+    height: 20px;
+    background: linear-gradient(transparent, var(--accent-color));
+    animation: rainfall linear infinite;
+}
+
+@keyframes rainfall {
+    0% {
+        transform: translateY(-10vh) translateX(0);
+        opacity: 0;
+    }
+    10% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(110vh) translateX(-10px);
+        opacity: 0;
+    }
+}
+
+/* Snow Effect */
+.snowflake {
+    position: absolute;
+    color: #fff;
+    font-size: 1em;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
+    animation: snowfall linear infinite;
+}
+
+@keyframes snowfall {
+    0% {
+        transform: translateY(-10vh) translateX(0) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(110vh) translateX(100px) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* Achievements Panel */
+.achievements-panel {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 80%;
+    max-width: 800px;
+    height: 80vh;
+    background: var(--background-color);
+    border: 1px solid var(--accent-color);
+    border-radius: 8px;
+    display: none;
+    flex-direction: column;
+    z-index: 1100;
+    overflow: hidden;
+}
+
+.achievements-panel.show {
+    display: flex;
+}
+
+.achievements-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: #2d2d2d;
+    border-bottom: 1px solid var(--accent-color);
+}
+
+.achievements-header h2 {
+    color: var(--text-color);
+    font-size: 18px;
+    margin: 0;
+}
+
+.close-achievements {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0 8px;
+}
+
+.close-achievements:hover {
+    color: var(--error-color);
+}
+
+.achievements-categories {
+    display: flex;
+    gap: 10px;
+    padding: 15px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.category-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid transparent;
+    color: var(--text-color);
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.category-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.category-btn.active {
+    background: var(--accent-color);
+    color: var(--background-color);
+}
+
+.achievements-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 15px;
+}
+
+.achievement-card {
+    background: #2d2d2d;
+    border: 1px solid var(--accent-color);
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    gap: 15px;
+    transition: all 0.3s ease;
+    opacity: 0.5;
+    filter: grayscale(1);
+}
+
+.achievement-card.unlocked {
+    opacity: 1;
+    filter: none;
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+}
+
+.achievement-card:hover {
+    transform: translateY(-2px);
+}
+
+.achievement-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.achievement-info {
+    flex: 1;
+}
+
+.achievement-title {
+    color: var(--primary-color);
+    font-size: 16px;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.achievement-description {
+    color: var(--text-color);
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.achievement-progress {
+    margin-top: 10px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.achievement-progress-bar {
+    height: 100%;
+    background: var(--primary-color);
+    transition: width 0.3s ease;
+}
+
+.achievement-date {
+    color: var(--accent-color);
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* Scrollbar style for achievements list */
+.achievements-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.achievements-list::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.achievements-list::-webkit-scrollbar-thumb {
+    background: var(--accent-color);
+    border-radius: 4px;
+}
+
+/* Achievement unlock animation */
+@keyframes achievementUnlock {
+    0% {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.achievement-card.just-unlocked {
+    animation: achievementUnlock 0.5s ease-out;
+}
+
+/* 搞笑效果的樣式 */
+.coffee-overflow {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+    font-size: 24px;
+    animation: coffeeRain 3s linear;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes coffeeRain {
+    0% {
+        transform: translateY(-100%);
+    }
+    10% {
+        transform: translateY(0);
+    }
+    90% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100vh);
+        opacity: 0;
+    }
+}
+
+.bug-animation {
+    position: fixed;
+    font-size: 24px;
+    animation: bugCrawl 5s linear;
+    cursor: pointer;
+    z-index: 1000;
+}
+
+@keyframes bugCrawl {
+    0% {
+        transform: translateY(-50px) rotate(0deg);
+    }
+    25% {
+        transform: translateY(25vh) rotate(90deg);
+    }
+    50% {
+        transform: translateY(50vh) rotate(180deg);
+    }
+    75% {
+        transform: translateY(75vh) rotate(270deg);
+    }
+    100% {
+        transform: translateY(100vh) rotate(360deg);
+    }
+}
+
+@keyframes bugCaught {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+    50% {
+        transform: scale(1.5) rotate(180deg);
+    }
+    100% {
+        transform: scale(0) rotate(360deg);
+    }
+}
+
+.panic {
+    animation: panic 0.5s ease-in-out infinite;
+}
+
+@keyframes panic {
+    0% {
+        transform: translate(0, 0) rotate(0deg);
+    }
+    25% {
+        transform: translate(-5px, -5px) rotate(-1deg);
+    }
+    50% {
+        transform: translate(5px, 5px) rotate(1deg);
+    }
+    75% {
+        transform: translate(-5px, 5px) rotate(-1deg);
+    }
+    100% {
+        transform: translate(5px, -5px) rotate(1deg);
+    }
+}
+
+.sleepy-effect {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 100px;
+    animation: sleepy 3s ease-in-out;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+@keyframes sleepy {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1) rotate(180deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(0) rotate(360deg);
+        opacity: 0;
+    }
+}
+
+/* 當玩家獲得咖啡因溢出成就時的特效 */
+.coffee-overdrive {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(45deg, 
+        rgba(101, 67, 33, 0.1),
+        rgba(139, 69, 19, 0.1)
+    );
+    animation: coffeeOverdrive 1s infinite;
+    pointer-events: none;
+    z-index: 999;
+}
+
+@keyframes coffeeOverdrive {
+    0% {
+        filter: hue-rotate(0deg) brightness(1);
+    }
+    50% {
+        filter: hue-rotate(180deg) brightness(1.2);
+    }
+    100% {
+        filter: hue-rotate(360deg) brightness(1);
+    }
+}
+
+/* Stack Overflow 戰士特效 */
+.stackoverflow-effect {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background: #f48024;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-family: 'Fira Code', monospace;
+    animation: stackOverflowPop 2s ease-out;
+    z-index: 1000;
+}
+
+@keyframes stackOverflowPop {
+    0% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    10% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    90% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+}
+
+/* 小黃鴨除錯特效 */
+.rubber-duck {
+    position: fixed;
+    bottom: -50px;
+    right: 20px;
+    font-size: 50px;
+    animation: duckFloat 3s ease-in-out infinite;
+    z-index: 1000;
+}
+
+@keyframes duckFloat {
+    0% {
+        transform: translateY(0) rotate(0deg);
+    }
+    50% {
+        transform: translateY(-20px) rotate(10deg);
+    }
+    100% {
+        transform: translateY(0) rotate(0deg);
+    }
+}
+
+/* PM噩夢特效 */
+.pm-effect {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 24px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    color: var(--error-color);
+    animation: pmNightmare 2s ease-in-out;
+    z-index: 1000;
+}
+
+@keyframes pmNightmare {
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 0;
+    }
+    50% {
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+    }
 } 
