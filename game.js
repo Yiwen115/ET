@@ -36,7 +36,8 @@ const gameState = {
     difficultyLevel: 1,
     totalScore: 0,
     perfectAnswers: 0,
-    quickAnswers: 0
+    quickAnswers: 0,
+    sleepyAchievementGranted: false
 };
 
 // 遊戲配置
@@ -580,7 +581,8 @@ const achievementSystem = {
             icon: '⚡',
             category: 'gameplay',
             condition: (timeLeft) => timeLeft >= 10,
-            hint: '試著快速且正確地回答問題'
+            hint: '試著快速且正確地回答問題',
+            unlockDate: null
         },
         PERFECT_STREAK: {
             id: 'perfect_streak',
@@ -589,7 +591,8 @@ const achievementSystem = {
             icon: '🚀',
             category: 'gameplay',
             condition: (streak) => streak >= 5,
-            hint: '連續答對5題'
+            hint: '連續答對5題',
+            unlockDate: null
         },
         RETAKE_MASTER: {
             id: 'retake_master',
@@ -598,7 +601,8 @@ const achievementSystem = {
             icon: '😭',
             category: 'special',
             condition: (wrongStreak) => wrongStreak >= 3,
-            hint: '不小心連續答錯3次'
+            hint: '不小心連續答錯3次',
+            unlockDate: null
         },
         DEADLINE_FIGHTER: {
             id: 'deadline_fighter',
@@ -657,11 +661,12 @@ const achievementSystem = {
         SLEEPY_CODER: {
             id: 'sleepy_coder',
             title: '打瞌睡工程師',
-            description: '超過5秒沒有任何操作',
+            description: '5秒內沒有回答題目',
             icon: '😴',
-            category: 'hidden',
-            condition: (context) => context.idleTime > 5000,
-            hint: '也許該休息一下？'
+            category: 'special',
+            condition: (context) => context.idleTime >= 5,
+            hint: '也許該休息一下？',
+            unlockDate: null
         },
         PANIC_MASTER: {
             id: 'panic_master',
@@ -712,20 +717,32 @@ const achievementSystem = {
 
     init() {
         // 初始化成就面板
-        this.panel = document.querySelector('.achievements-panel');
-        this.list = document.querySelector('.achievements-list');
-        this.categoryButtons = document.querySelectorAll('.category-btn');
-        
+        this.panel = document.createElement('div');
+        this.panel.className = 'achievements-panel';
+        this.panel.innerHTML = `
+            <div class="achievements-header">
+                <h2>成就系統</h2>
+                <div class="achievements-stats">
+                    <span class="total-achievements">已解鎖: 0/${Object.keys(this.achievements).length}</span>
+                </div>
+                <button class="close-achievements">×</button>
+            </div>
+            <div class="achievements-categories">
+                <button class="category-btn active" data-category="all">全部</button>
+                <button class="category-btn" data-category="gameplay">遊戲</button>
+                <button class="category-btn" data-category="special">特殊</button>
+                <button class="category-btn" data-category="hidden">隱藏</button>
+            </div>
+            <div class="achievements-grid"></div>
+        `;
+        document.body.appendChild(this.panel);
+
         // 綁定事件
-        document.querySelector('.activity-item[title="成就系統"]').addEventListener('click', () => {
-            this.togglePanel();
-        });
-        
-        document.querySelector('.close-achievements').addEventListener('click', () => {
+        this.panel.querySelector('.close-achievements').addEventListener('click', () => {
             this.hidePanel();
         });
-        
-        this.categoryButtons.forEach(btn => {
+
+        this.panel.querySelectorAll('.category-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 this.filterAchievements(btn.dataset.category);
             });
@@ -735,24 +752,33 @@ const achievementSystem = {
         this.renderAchievements();
     },
 
-    togglePanel() {
-        this.panel.classList.toggle('show');
+    showPanel() {
+        this.panel.classList.add('show');
+        this.renderAchievements();
     },
 
     hidePanel() {
         this.panel.classList.remove('show');
     },
 
+    togglePanel() {
+        this.panel.classList.toggle('show');
+        if (this.panel.classList.contains('show')) {
+            this.renderAchievements();
+        }
+    },
+
     filterAchievements(category) {
-        this.categoryButtons.forEach(btn => {
+        const buttons = this.panel.querySelectorAll('.category-btn');
+        buttons.forEach(btn => {
             btn.classList.toggle('active', btn.dataset.category === category);
         });
-        
         this.renderAchievements(category);
     },
 
     renderAchievements(category = 'all') {
-        this.list.innerHTML = '';
+        const grid = this.panel.querySelector('.achievements-grid');
+        grid.innerHTML = '';
         
         Object.values(this.achievements).forEach(achievement => {
             if (category === 'all' || achievement.category === category) {
@@ -761,8 +787,9 @@ const achievementSystem = {
                 card.className = `achievement-card ${isUnlocked ? 'unlocked' : ''}`;
                 
                 card.innerHTML = `
-                    <div class="achievement-icon-wrapper">
-                        ${isUnlocked ? achievement.icon : '?'}
+                    <div class="achievement-icon">
+                        <span class="icon-display">${isUnlocked ? achievement.icon : '🔒'}</span>
+                        ${isUnlocked ? '<div class="achievement-glow"></div>' : ''}
                     </div>
                     <div class="achievement-info">
                         <div class="achievement-title">
@@ -771,24 +798,35 @@ const achievementSystem = {
                         <div class="achievement-description">
                             ${isUnlocked ? achievement.description : achievement.hint}
                         </div>
-                        ${isUnlocked ? `
+                        ${isUnlocked && achievement.unlockDate ? `
                             <div class="achievement-date">
-                                解鎖於 ${new Date().toLocaleDateString()}
+                                解鎖於 ${achievement.unlockDate}
                             </div>
                         ` : ''}
                     </div>
                 `;
                 
-                this.list.appendChild(card);
+                grid.appendChild(card);
             }
         });
+
+        // 更新成就統計
+        const unlockedCount = gameState.achievements.length;
+        const totalCount = Object.keys(this.achievements).length;
+        this.panel.querySelector('.total-achievements').textContent = 
+            `已解鎖: ${unlockedCount}/${totalCount}`;
     },
 
     unlockAchievement(id) {
         if (!gameState.achievements.includes(id)) {
+            const achievement = this.achievements[id];
+            achievement.unlockDate = new Date().toLocaleDateString();
             gameState.achievements.push(id);
-            this.showUnlockNotification(this.achievements[id]);
+            this.showUnlockNotification(achievement);
             this.renderAchievements();
+            
+            // 播放解鎖音效
+            this.playUnlockSound();
         }
     },
 
@@ -796,7 +834,10 @@ const achievementSystem = {
         const notification = document.createElement('div');
         notification.className = 'achievement-notification';
         notification.innerHTML = `
-            <div class="achievement-icon">${achievement.icon}</div>
+            <div class="achievement-icon">
+                ${achievement.icon}
+                <div class="achievement-glow"></div>
+            </div>
             <div class="achievement-content">
                 <div class="achievement-title">解鎖成就：${achievement.title}</div>
                 <div class="achievement-description">${achievement.description}</div>
@@ -805,71 +846,21 @@ const achievementSystem = {
         
         document.body.appendChild(notification);
         
-        setTimeout(() => {
-            notification.remove();
-        }, 3000);
-    },
-
-    // 添加搞笑效果
-    showFunnyEffect(type) {
-        switch(type) {
-            case 'coffee':
-                this.showCoffeeOverflow();
-                break;
-            case 'bug':
-                this.showBugAnimation();
-                break;
-            case 'panic':
-                this.showPanicEffect();
-                break;
-            case 'sleep':
-                this.showSleepyEffect();
-                break;
-        }
-    },
-
-    showCoffeeOverflow() {
-        const coffee = document.createElement('div');
-        coffee.className = 'coffee-overflow';
-        coffee.innerHTML = '☕'.repeat(20);
-        document.body.appendChild(coffee);
-        setTimeout(() => coffee.remove(), 3000);
-    },
-
-    showBugAnimation() {
-        const bug = document.createElement('div');
-        bug.className = 'bug-animation';
-        bug.innerHTML = '🐛';
-        bug.style.left = Math.random() * window.innerWidth + 'px';
-        document.body.appendChild(bug);
-        
-        let caught = false;
-        bug.addEventListener('click', () => {
-            if (!caught) {
-                caught = true;
-                bug.style.animation = 'bugCaught 0.5s forwards';
-                this.unlockAchievement('BUG_HUNTER');
-                setTimeout(() => bug.remove(), 500);
+        // 添加動畫結束監聽器
+        notification.addEventListener('animationend', (e) => {
+            if (e.animationName === 'slideOut') {
+                notification.remove();
             }
         });
-
-        setTimeout(() => {
-            if (!caught) bug.remove();
-        }, 5000);
     },
 
-    showPanicEffect() {
-        const container = document.querySelector('.game-container');
-        container.classList.add('panic');
-        setTimeout(() => container.classList.remove('panic'), 3000);
-    },
-
-    showSleepyEffect() {
-        const zzz = document.createElement('div');
-        zzz.className = 'sleepy-effect';
-        zzz.innerHTML = '💤';
-        document.body.appendChild(zzz);
-        setTimeout(() => zzz.remove(), 3000);
+    playUnlockSound() {
+        // 播放成就解鎖音效
+        const audio = new Audio('achievement_unlock.mp3');
+        audio.volume = 0.5;
+        audio.play().catch(() => {
+            // 忽略瀏覽器可能的自動播放限制錯誤
+        });
     }
 };
 
@@ -908,23 +899,74 @@ async function initializeCamera() {
     }
 }
 
-// 更新選項
-function updateOptions(challenge) {
+// 更新挑戰
+function updateChallenge(challenge) {
+    // 更新問題顯示
+    const codeBlock = document.querySelector('.code-block pre');
+    if (codeBlock) {
+        codeBlock.textContent = challenge.code;
+    }
+
+    // 隨機打亂選項順序
+    const shuffledOptions = shuffleArray([...challenge.options]);
+    // 記錄正確答案的新位置
+    const newCorrectIndex = shuffledOptions.indexOf(challenge.options[challenge.correct]);
+    // 更新當前挑戰的正確答案索引
+    gameState.currentChallenge = {
+        ...challenge,
+        options: shuffledOptions,
+        correct: newCorrectIndex
+    };
+    
+    // 更新選項顯示
     const optionsContainer = document.querySelector('.options-container');
     optionsContainer.innerHTML = `
-        <div class="option" data-position="top" data-index="0">${challenge.options[0]}</div>
-        <div class="option" data-position="right" data-index="1">${challenge.options[1]}</div>
-        <div class="option" data-position="bottom" data-index="2">${challenge.options[2]}</div>
-        <div class="option" data-position="left" data-index="3">${challenge.options[3]}</div>
+        <div class="option" data-position="top" data-index="0">
+            <div class="option-content">${shuffledOptions[0]}</div>
+        </div>
+        <div class="option" data-position="right" data-index="1">
+            <div class="option-content">${shuffledOptions[1]}</div>
+        </div>
+        <div class="option" data-position="bottom" data-index="2">
+            <div class="option-content">${shuffledOptions[2]}</div>
+        </div>
+        <div class="option" data-position="left" data-index="3">
+            <div class="option-content">${shuffledOptions[3]}</div>
+        </div>
     `;
 
-    // Add click event listeners to options
+    // 添加選項點擊事件
     document.querySelectorAll('.option').forEach(option => {
         option.addEventListener('click', () => {
             if (!gameState.canAnswer) return;
             const index = parseInt(option.dataset.index);
             selectOption(index);
         });
+    });
+}
+
+// 更新選項樣式
+function updateOptionStyles() {
+    const options = document.querySelectorAll('.option');
+    options.forEach(option => {
+        const position = option.dataset.position;
+        const content = option.querySelector('.option-content');
+        
+        // 根據位置設置不同的樣式
+        switch(position) {
+            case 'top':
+                content.style.transform = 'translateY(0)';
+                break;
+            case 'right':
+                content.style.transform = 'translateX(0)';
+                break;
+            case 'bottom':
+                content.style.transform = 'translateY(0)';
+                break;
+            case 'left':
+                content.style.transform = 'translateX(0)';
+                break;
+        }
     });
 }
 
@@ -1090,6 +1132,7 @@ function selectOption(index) {
     // 重置閒置時間
     gameState.idleTime = 0;
     gameState.lastActionTime = Date.now();
+    gameState.sleepyAchievementGranted = false;
 }
 
 // 檢查答案
@@ -1243,11 +1286,22 @@ function checkAchievements(context) {
 // 開始計時器
 function startTimer() {
     gameState.timeLeft = config.challengeTime;
+    gameState.lastActionTime = Date.now();
     updateTimerDisplay();
     
     gameState.timer = setInterval(() => {
         gameState.timeLeft--;
         gameState.health = Math.max(0, gameState.health - config.healthLossPerSecond);
+        
+        // 檢查打瞌睡狀態
+        const currentTime = Date.now();
+        const idleTime = (currentTime - gameState.lastActionTime) / 1000; // 轉換為秒
+        
+        if (idleTime >= 5 && !gameState.sleepyAchievementGranted) {
+            // 觸發打瞌睡成就
+            achievementSystem.unlockAchievement('SLEEPY_CODER');
+            gameState.sleepyAchievementGranted = true; // 防止重複觸發
+        }
         
         updateTimerDisplay();
         updateUI();
