@@ -2,7 +2,6 @@
 const gameState = {
     isPlaying: false,
     health: 100,
-    achievements: [],
     streak: 0,
     wrongStreak: 0,
     currentChallenge: null,
@@ -23,17 +22,7 @@ const gameState = {
         usedKeyboard: false,
         lastSecondCounter: 0,
         quickAnswerStreak: 0
-    },
-    sameAnswerCount: 0,
-    lastAnswer: null,
-    idleTime: 0,
-    lastActionTime: Date.now(),
-    panicSwitches: 0,
-    changeCount: 0,
-    talkingTime: 0,
-    caughtBug: false,
-    sleepyEffectShown: false,
-    idleChecker: null
+    }
 };
 
 // 遊戲配置
@@ -378,8 +367,8 @@ const hands = new Hands({
 
 hands.setOptions({
     maxNumHands: 2,
-    modelComplexity: 0,  // 降低模型複雜度以提高性能
-    minDetectionConfidence: 0.6,
+    modelComplexity: 1,
+    minDetectionConfidence: 0.5,
     minTrackingConfidence: 0.5
 });
 
@@ -549,6 +538,7 @@ const achievementSystem = {
             title: '4%仔',
             description: '10秒內答對題目',
             icon: '⚡',
+            category: 'gameplay',
             condition: (timeLeft) => timeLeft >= 10,
             hint: '試著快速且正確地回答問題'
         },
@@ -557,6 +547,7 @@ const achievementSystem = {
             title: '起飛啦',
             description: '達成5連擊',
             icon: '🚀',
+            category: 'gameplay',
             condition: (streak) => streak >= 5,
             hint: '連續答對5題'
         },
@@ -565,6 +556,7 @@ const achievementSystem = {
             title: '大二孤寂淚',
             description: '連續答錯3次',
             icon: '😭',
+            category: 'special',
             condition: (wrongStreak) => wrongStreak >= 3,
             hint: '不小心連續答錯3次'
         },
@@ -573,6 +565,7 @@ const achievementSystem = {
             title: '死線戰士',
             description: '在最後1秒答對',
             icon: '⏰',
+            category: 'special',
             condition: (timeLeft) => timeLeft === 1,
             hint: '在倒數最後一秒答題'
         },
@@ -581,15 +574,17 @@ const achievementSystem = {
             title: '蒙對大師',
             description: '生命值低於20%時答對',
             icon: '🎰',
+            category: 'special',
             condition: (health) => health <= 20,
             hint: '在生命值很低時仍然答對'
         },
         WEEKEND_CODER: {
             id: 'weekend_coder',
-            title: '你在玩猜猜樂嗎？',
-            description: '連續錯3題後答對',
-            icon: '🎲',
-            condition: (context) => context.wrongStreak >= 3 && context.isCorrect,
+            title: '週末才開始寫',
+            description: '連續錯2題後答對',
+            icon: '🎮',
+            category: 'hidden',
+            condition: (context) => context.wrongStreak >= 2 && context.isCorrect,
             hint: '???'
         },
         KEYBOARD_WARRIOR: {
@@ -597,6 +592,7 @@ const achievementSystem = {
             title: '鍵盤俠',
             description: '使用鍵盤而不是手勢操作',
             icon: '⌨️',
+            category: 'hidden',
             condition: (context) => context.usedKeyboard,
             hint: '???'
         },
@@ -605,6 +601,7 @@ const achievementSystem = {
             title: '複製貼上工程師',
             description: '連續選擇同一個選項3次',
             icon: '📋',
+            category: 'special',
             condition: (context) => context.sameAnswerCount >= 3,
             hint: '你最愛的按鍵組合是什麼？'
         },
@@ -613,6 +610,7 @@ const achievementSystem = {
             title: '咖啡因溢出',
             description: '生命值超過100%',
             icon: '☕',
+            category: 'special',
             condition: (context) => context.health > 100,
             hint: '喝太多咖啡了吧！'
         },
@@ -621,6 +619,7 @@ const achievementSystem = {
             title: '打瞌睡工程師',
             description: '超過5秒沒有任何操作',
             icon: '😴',
+            category: 'hidden',
             condition: (context) => context.idleTime > 5000,
             hint: '也許該休息一下？'
         },
@@ -629,6 +628,7 @@ const achievementSystem = {
             title: '慌亂大師',
             description: '在最後3秒內瘋狂切換選項',
             icon: '😱',
+            category: 'hidden',
             condition: (context) => context.panicSwitches >= 5,
             hint: '冷靜點，深呼吸！'
         },
@@ -637,6 +637,7 @@ const achievementSystem = {
             title: 'Stack Overflow 戰士',
             description: '不看題目直接選答案',
             icon: '💻',
+            category: 'special',
             condition: (context) => context.answerTime < 1,
             hint: '這題我在 Stack Overflow 上看過！'
         },
@@ -645,6 +646,7 @@ const achievementSystem = {
             title: '小黃鴨除錯法',
             description: '對著攝像頭說話超過3秒',
             icon: '🦆',
+            category: 'hidden',
             condition: (context) => context.talkingTime > 3000,
             hint: '試著跟你的程式對話'
         },
@@ -653,6 +655,7 @@ const achievementSystem = {
             title: 'PM的噩夢',
             description: '連續更改答案5次後答對',
             icon: '😈',
+            category: 'special',
             condition: (context) => context.changeCount >= 5 && context.isCorrect,
             hint: '需求一直在改...'
         },
@@ -661,28 +664,97 @@ const achievementSystem = {
             title: '捕蟲達人',
             description: '在答題過程中抓到一隻蟲',
             icon: '🐛',
+            category: 'hidden',
             condition: (context) => context.caughtBug,
             hint: '仔細觀察螢幕...'
         }
     },
 
     init() {
-        // 創建成就通知容器
-        this.achievementsContainer = document.createElement('div');
-        this.achievementsContainer.className = 'achievements-container';
-        document.body.appendChild(this.achievementsContainer);
+        // 初始化成就面板
+        this.panel = document.querySelector('.achievements-panel');
+        this.list = document.querySelector('.achievements-list');
+        this.categoryButtons = document.querySelectorAll('.category-btn');
+        
+        // 綁定事件
+        document.querySelector('.activity-item[title="成就系統"]').addEventListener('click', () => {
+            this.togglePanel();
+        });
+        
+        document.querySelector('.close-achievements').addEventListener('click', () => {
+            this.hidePanel();
+        });
+        
+        this.categoryButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.filterAchievements(btn.dataset.category);
+            });
+        });
+
+        // 初始化成就列表
+        this.renderAchievements();
+    },
+
+    togglePanel() {
+        this.panel.classList.toggle('show');
+    },
+
+    hidePanel() {
+        this.panel.classList.remove('show');
+    },
+
+    filterAchievements(category) {
+        this.categoryButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.category === category);
+        });
+        
+        this.renderAchievements(category);
+    },
+
+    renderAchievements(category = 'all') {
+        this.list.innerHTML = '';
+        
+        Object.values(this.achievements).forEach(achievement => {
+            if (category === 'all' || achievement.category === category) {
+                const isUnlocked = gameState.achievements.includes(achievement.id);
+                const card = document.createElement('div');
+                card.className = `achievement-card ${isUnlocked ? 'unlocked' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="achievement-icon-wrapper">
+                        ${isUnlocked ? achievement.icon : '?'}
+                    </div>
+                    <div class="achievement-info">
+                        <div class="achievement-title">
+                            ${isUnlocked ? achievement.title : '???'}
+                        </div>
+                        <div class="achievement-description">
+                            ${isUnlocked ? achievement.description : achievement.hint}
+                        </div>
+                        ${isUnlocked ? `
+                            <div class="achievement-date">
+                                解鎖於 ${new Date().toLocaleDateString()}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                this.list.appendChild(card);
+            }
+        });
     },
 
     unlockAchievement(id) {
         if (!gameState.achievements.includes(id)) {
             gameState.achievements.push(id);
             this.showUnlockNotification(this.achievements[id]);
+            this.renderAchievements();
         }
     },
 
     showUnlockNotification(achievement) {
         const notification = document.createElement('div');
-        notification.className = 'achievement';
+        notification.className = 'achievement-notification';
         notification.innerHTML = `
             <div class="achievement-icon">${achievement.icon}</div>
             <div class="achievement-content">
@@ -691,13 +763,73 @@ const achievementSystem = {
             </div>
         `;
         
-        this.achievementsContainer.appendChild(notification);
+        document.body.appendChild(notification);
         
-        notification.addEventListener('animationend', (e) => {
-            if (e.animationName === 'fadeOut') {
-                notification.remove();
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
+    },
+
+    // 添加搞笑效果
+    showFunnyEffect(type) {
+        switch(type) {
+            case 'coffee':
+                this.showCoffeeOverflow();
+                break;
+            case 'bug':
+                this.showBugAnimation();
+                break;
+            case 'panic':
+                this.showPanicEffect();
+                break;
+            case 'sleep':
+                this.showSleepyEffect();
+                break;
+        }
+    },
+
+    showCoffeeOverflow() {
+        const coffee = document.createElement('div');
+        coffee.className = 'coffee-overflow';
+        coffee.innerHTML = '☕'.repeat(20);
+        document.body.appendChild(coffee);
+        setTimeout(() => coffee.remove(), 3000);
+    },
+
+    showBugAnimation() {
+        const bug = document.createElement('div');
+        bug.className = 'bug-animation';
+        bug.innerHTML = '🐛';
+        bug.style.left = Math.random() * window.innerWidth + 'px';
+        document.body.appendChild(bug);
+        
+        let caught = false;
+        bug.addEventListener('click', () => {
+            if (!caught) {
+                caught = true;
+                bug.style.animation = 'bugCaught 0.5s forwards';
+                this.unlockAchievement('BUG_HUNTER');
+                setTimeout(() => bug.remove(), 500);
             }
         });
+
+        setTimeout(() => {
+            if (!caught) bug.remove();
+        }, 5000);
+    },
+
+    showPanicEffect() {
+        const container = document.querySelector('.game-container');
+        container.classList.add('panic');
+        setTimeout(() => container.classList.remove('panic'), 3000);
+    },
+
+    showSleepyEffect() {
+        const zzz = document.createElement('div');
+        zzz.className = 'sleepy-effect';
+        zzz.innerHTML = '💤';
+        document.body.appendChild(zzz);
+        setTimeout(() => zzz.remove(), 3000);
     }
 };
 
@@ -744,57 +876,44 @@ function updateOptions(challenge) {
         <div class="option" data-position="right" data-index="1">${challenge.options[1]}</div>
         <div class="option" data-position="bottom" data-index="2">${challenge.options[2]}</div>
         <div class="option" data-position="left" data-index="3">${challenge.options[3]}</div>
+        <div class="option" data-position="center">?</div>
     `;
-
-    // 綁定選項點擊事件
-    const options = document.querySelectorAll('.option');
-    options.forEach(option => {
-        option.addEventListener('click', () => {
-            const index = parseInt(option.dataset.index);
-            selectOption(index);
-        });
-    });
 }
 
-// 優化手勢處理
-let lastFrameTime = 0;
-const minFrameTime = 1000 / 30; // 限制最高 30fps
-
+// 手勢處理
 hands.onResults((results) => {
-    const currentTime = performance.now();
-    if (currentTime - lastFrameTime < minFrameTime) {
-        return; // 跳過過於頻繁的幀
-    }
-    lastFrameTime = currentTime;
-
     const handCtx = handCanvas.getContext('2d');
+    
+    // 清除畫布
     handCtx.clearRect(0, 0, handCanvas.width, handCanvas.height);
+    
+    // 繪製鏡像的視訊
+    handCtx.save();
+    handCtx.scale(-1, 1);
+    handCtx.translate(-handCanvas.width, 0);
+    handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
+    handCtx.restore();
     
     if (results.multiHandLandmarks) {
         // 繪製手部標記
         handCtx.save();
         handCtx.scale(-1, 1);
         handCtx.translate(-handCanvas.width, 0);
-        
-        // 先繪製攝像頭影像
-        handCtx.drawImage(videoElement, 0, 0, handCanvas.width, handCanvas.height);
-        
+
         results.multiHandLandmarks.forEach((landmarks, index) => {
             const handedness = results.multiHandedness[index];
             const isLeft = handedness.label.toLowerCase() === 'left';
             const color = isLeft ? '#00FF00' : '#FF0000';
             
-            // 繪製所有手部關鍵點
             drawConnectors(handCtx, landmarks, HAND_CONNECTIONS, {
                 color: color,
                 lineWidth: 2
             });
-            
             drawLandmarks(handCtx, landmarks, {
                 color: color,
                 lineWidth: 1,
                 radius: 3,
-                fillColor: isLeft ? '#00FF00' : '#FF0000'
+                fillColor: color
             });
         });
 
@@ -802,6 +921,7 @@ hands.onResults((results) => {
 
         // 遊戲控制邏輯
         if (gameState.isPlaying && gameState.canAnswer) {
+            // 重置手勢狀態
             let leftHandGesture = null;
             let rightHandGesture = null;
 
@@ -810,13 +930,15 @@ hands.onResults((results) => {
                 const handType = isLeft ? 'right' : 'left'; // 因為鏡像效果需要反轉
                 const landmarks = results.multiHandLandmarks[index];
                 
-                // 手勢判斷
+                // 獲取手腕和食指的座標
                 const wrist = landmarks[0];
                 const indexFinger = landmarks[8];
                 
+                // 計算相對位移（考慮鏡像效果）
                 const deltaY = indexFinger.y - wrist.y;
                 const deltaX = -(indexFinger.x - wrist.x);
                 
+                // 判斷手勢方向
                 let gesture = null;
                 if (Math.abs(deltaY) > Math.abs(deltaX)) {
                     if (deltaY < -config.gestureThreshold) gesture = 0; // 上
@@ -826,23 +948,26 @@ hands.onResults((results) => {
                     else if (deltaX > config.gestureThreshold) gesture = 1; // 右
                 }
 
+                // 儲存手勢
                 if (handType === 'left') leftHandGesture = gesture;
                 else rightHandGesture = gesture;
             });
 
             // 更新遊戲狀態
-            if (leftHandGesture !== gameState.leftHandGesture) {
-                gameState.leftHandGesture = leftHandGesture;
-                if (leftHandGesture !== null) {
-                    selectOption(leftHandGesture);
-                }
+            gameState.leftHandGesture = leftHandGesture;
+            gameState.rightHandGesture = rightHandGesture;
+
+            // 處理手勢
+            if (leftHandGesture !== null) {
+                selectOption(leftHandGesture);
             }
 
-            if (rightHandGesture !== gameState.rightHandGesture) {
-                gameState.rightHandGesture = rightHandGesture;
-                if (rightHandGesture === 0 && gameState.selectedOption !== null) {
-                    checkAnswer(gameState.selectedOption);
-                }
+            if (rightHandGesture === 0 && gameState.selectedOption !== null) {
+                checkAnswer(gameState.selectedOption);
+            }
+
+            if (leftHandGesture === 2 && rightHandGesture === 2) {
+                pauseGame();
             }
 
             // 更新手勢提示
@@ -856,18 +981,20 @@ function updateGestureHint(leftGesture, rightGesture) {
     const gestureHint = document.querySelector('.gesture-hint');
     if (!gestureHint) return;
 
-    let hintText = '左手上下左右選擇答案，右手舉起確認';
+    const directions = ['上', '右', '下', '左'];
+    let hintText = '';
     
     if (leftGesture !== null) {
-        const directions = ['上', '右', '下', '左'];
-        hintText = `選擇：${directions[leftGesture]} `;
+        hintText = `左手：${directions[leftGesture]} `;
     }
     
     if (rightGesture === 0) {
-        hintText += '✓ 確認答案';
+        hintText += '右手：確認';
+    } else if (rightGesture === 2 && leftGesture === 2) {
+        hintText = '暫停遊戲';
     }
 
-    gestureHint.textContent = hintText;
+    gestureHint.textContent = hintText || '等待手勢...';
 }
 
 // 選擇選項
@@ -884,12 +1011,7 @@ function selectOption(index) {
     if (index === gameState.lastAnswer) {
         gameState.sameAnswerCount++;
         if (gameState.sameAnswerCount >= 3) {
-            const context = {
-                sameAnswerCount: gameState.sameAnswerCount,
-                isCorrect: false,
-                health: gameState.health
-            };
-            checkAchievements(context);
+            achievementSystem.unlockAchievement('CTRL_C_MASTER');
         }
     } else {
         gameState.sameAnswerCount = 1;
@@ -903,11 +1025,6 @@ function selectOption(index) {
     if (gameState.timeLeft <= 3) {
         gameState.panicSwitches++;
         if (gameState.panicSwitches >= 5) {
-            const context = {
-                panicSwitches: gameState.panicSwitches,
-                timeLeft: gameState.timeLeft
-            };
-            checkAchievements(context);
             achievementSystem.showFunnyEffect('panic');
         }
     }
@@ -919,29 +1036,7 @@ function selectOption(index) {
 
 // 檢查答案
 function checkAnswer(selectedIndex) {
-    if (!gameState.canAnswer) return;
-    
-    clearInterval(gameState.timer);
-    gameState.canAnswer = false;
     const isCorrect = selectedIndex === gameState.currentChallenge.correct;
-    const answerTime = config.challengeTime - gameState.timeLeft;
-
-    // 更新成就檢查的上下文
-    const achievementContext = {
-        wrongStreak: gameState.wrongStreak,
-        streak: gameState.streak,
-        isCorrect: isCorrect,
-        usedKeyboard: gameState.usedKeyboard,
-        timeLeft: gameState.timeLeft,
-        health: gameState.health,
-        sameAnswerCount: gameState.sameAnswerCount,
-        idleTime: gameState.idleTime,
-        panicSwitches: gameState.panicSwitches,
-        changeCount: gameState.changeCount,
-        talkingTime: gameState.talkingTime,
-        caughtBug: gameState.caughtBug,
-        answerTime: answerTime
-    };
 
     if (isCorrect) {
         const timeBonus = Math.floor(gameState.timeLeft / 2);
@@ -952,35 +1047,16 @@ function checkAnswer(selectedIndex) {
         gameState.health = Math.min(config.maxHealth, 
             gameState.health + config.healthGainOnCorrect + streakBonus);
 
-        // 檢查成就
-        checkAchievements(achievementContext);
-
         if (gameState.streak >= 2) {
             effectsSystem.showStreakEffect(gameState.streak);
-            
-            if (gameState.streak >= 5) {
-                effectsSystem.startEffect('stars', 5);
-            } else if (gameState.streak >= 4) {
-                effectsSystem.startEffect('snow', 4);
-            } else if (gameState.streak >= 3) {
-                effectsSystem.startEffect('rain', 3);
-            }
         }
         
         showFeedback(true, gameState.currentChallenge.explanation, 
             `+${timeBonus} 時間獎勵\n+${streakBonus} 連擊獎勵！`);
-
-        if (gameState.health > 100) {
-            achievementSystem.showFunnyEffect('coffee');
-            achievementSystem.unlockAchievement('COFFEE_OVERFLOW');
-        }
     } else {
         gameState.health = Math.max(0, gameState.health - config.healthLossOnWrong);
         gameState.streak = 0;
         gameState.wrongStreak++;
-        
-        // 檢查成就
-        checkAchievements(achievementContext);
         
         effectsSystem.stopEffect();
         showFeedback(false, gameState.currentChallenge.explanation);
@@ -993,7 +1069,6 @@ function checkAnswer(selectedIndex) {
             endGame();
         } else {
             nextChallenge();
-            startTimer();
         }
     }, 2000);
 }
@@ -1010,6 +1085,8 @@ function showFeedback(isCorrect, explanation, bonus = '') {
     feedback.innerHTML = `
         <div class="feedback-title">${isCorrect ? '正確！' : '錯誤！'}</div>
         <p class="explanation">${explanation}</p>
+        ${bonus ? `<div class="bonus-info">${bonus}</div>` : ''}
+        ${isCorrect ? `<div class="streak-info">連擊：${gameState.streak}</div>` : ''}
     `;
     
     document.querySelector('.challenge-container').appendChild(feedback);
@@ -1029,21 +1106,9 @@ function updateUI() {
     
     if (healthText) healthText.textContent = `${Math.round(gameState.health)}%`;
     if (healthFill) healthFill.style.width = `${gameState.health}%`;
-}
-
-// 檢查並授予成就
-function checkAchievements(context) {
-    Object.entries(achievementSystem.achievements).forEach(([id, achievement]) => {
-        if (!gameState.achievements.includes(id)) {
-            try {
-                if (achievement.condition(context)) {
-                    achievementSystem.unlockAchievement(id);
-                }
-            } catch (error) {
-                console.error(`檢查成就 ${id} 時發生錯誤:`, error);
-            }
-        }
-    });
+    
+    const streakCount = document.querySelector('.streak-count');
+    if (streakCount) streakCount.textContent = gameState.streak;
 }
 
 // 開始計時器
@@ -1082,19 +1147,11 @@ function startGame() {
     gameState.isPlaying = true;
     gameState.health = config.maxHealth;
     gameState.streak = 0;
-    gameState.sleepyEffectShown = false;
-    gameState.lastActionTime = Date.now();
-    
-    // 開始閒置檢查
-    gameState.idleChecker = setInterval(checkIdleTime, 1000);
     
     document.getElementById('tutorial').style.display = 'none';
     updateUI();
     nextChallenge();
     startTimer();
-    
-    // 隨機生成蟲子
-    startBugGenerator();
 }
 
 // 暫停遊戲
@@ -1130,13 +1187,29 @@ function resumeGame() {
 function endGame() {
     gameState.isPlaying = false;
     clearInterval(gameState.timer);
-    clearInterval(gameState.idleChecker);
     
     const gameOverScreen = document.createElement('div');
     gameOverScreen.className = 'game-over-screen';
     gameOverScreen.innerHTML = `
         <div class="game-over-content">
             <h2>遊戲結束</h2>
+            <div class="final-stats">
+                <div class="achievements-summary">
+                    <h3>獲得的成就</h3>
+                    <div class="achievements-grid">
+                        ${gameState.achievements.map(id => {
+                            const achievement = achievementSystem.achievements[id];
+                            return `
+                                <div class="achievement-badge" title="${achievement.description}">
+                                    <div class="achievement-icon">${achievement.icon}</div>
+                                    <div class="achievement-name">${achievement.title}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                <p>最高連擊數：${gameState.streak}</p>
+            </div>
             <button onclick="location.reload()" class="restart-button">重新開始</button>
         </div>
     `;
@@ -1217,56 +1290,128 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-// 檢查閒置時間
-function checkIdleTime() {
-    const currentTime = Date.now();
-    gameState.idleTime = currentTime - gameState.lastActionTime;
-    
-    if (gameState.idleTime > 5000 && !gameState.sleepyEffectShown) {
-        gameState.sleepyEffectShown = true;
-        achievementSystem.showFunnyEffect('sleep');
-        achievementSystem.unlockAchievement('SLEEPY_CODER');
+// 在遊戲開始時初始化特效系統
+window.addEventListener('load', () => {
+    effectsSystem.init();
+    achievementSystem.init();
+});
+
+// Weather Effects Control
+class WeatherEffects {
+    constructor() {
+        this.container = document.querySelector('.weather-container');
+        this.isRaining = false;
+        this.isSnowing = false;
+        this.maxParticles = 100;
+        this.particles = [];
+    }
+
+    startRain() {
+        if (this.isRaining) return;
+        this.isSnowing = false;
+        this.isRaining = true;
+        this.clearParticles();
+        this.createRain();
+    }
+
+    startSnow() {
+        if (this.isSnowing) return;
+        this.isRaining = false;
+        this.isSnowing = true;
+        this.clearParticles();
+        this.createSnow();
+    }
+
+    stopWeather() {
+        this.isRaining = false;
+        this.isSnowing = false;
+        this.clearParticles();
+    }
+
+    clearParticles() {
+        this.particles.forEach(particle => particle.remove());
+        this.particles = [];
+    }
+
+    createRain() {
+        if (!this.isRaining) return;
+
+        const raindrop = document.createElement('div');
+        raindrop.className = 'raindrop';
+        raindrop.style.left = `${Math.random() * 100}vw`;
+        raindrop.style.animationDuration = `${Math.random() * 1 + 0.5}s`;
+        this.container.appendChild(raindrop);
+        this.particles.push(raindrop);
+
+        // Remove raindrop after animation
+        raindrop.addEventListener('animationend', () => {
+            raindrop.remove();
+            this.particles = this.particles.filter(p => p !== raindrop);
+        });
+
+        // Continue creating raindrops
+        if (this.particles.length < this.maxParticles) {
+            requestAnimationFrame(() => this.createRain());
+        }
+    }
+
+    createSnow() {
+        if (!this.isSnowing) return;
+
+        const snowflake = document.createElement('div');
+        snowflake.className = 'snowflake';
+        snowflake.textContent = '❄';
+        snowflake.style.left = `${Math.random() * 100}vw`;
+        snowflake.style.animationDuration = `${Math.random() * 3 + 2}s`;
+        snowflake.style.opacity = Math.random() * 0.5 + 0.5;
+        snowflake.style.fontSize = `${Math.random() * 10 + 5}px`;
+        this.container.appendChild(snowflake);
+        this.particles.push(snowflake);
+
+        // Remove snowflake after animation
+        snowflake.addEventListener('animationend', () => {
+            snowflake.remove();
+            this.particles = this.particles.filter(p => p !== snowflake);
+        });
+
+        // Continue creating snowflakes
+        if (this.particles.length < this.maxParticles) {
+            requestAnimationFrame(() => this.createSnow());
+        }
     }
 }
 
-// 生成蟲子
-function startBugGenerator() {
-    const generateBug = () => {
-        if (!gameState.isPlaying) return;
-        
-        const bug = document.createElement('div');
-        bug.className = 'bug-animation';
-        bug.innerHTML = '🐛';
-        bug.style.left = Math.random() * (window.innerWidth - 50) + 'px';
-        document.body.appendChild(bug);
-        
-        let caught = false;
-        bug.addEventListener('click', () => {
-            if (!caught) {
-                caught = true;
-                bug.style.animation = 'bugCaught 0.5s forwards';
-                gameState.caughtBug = true;
-                achievementSystem.unlockAchievement('BUG_HUNTER');
-                setTimeout(() => bug.remove(), 500);
-            }
-        });
+// Initialize weather effects
+const weatherEffects = new WeatherEffects();
 
-        bug.addEventListener('animationend', () => {
-            if (!caught) {
-                bug.remove();
-            }
-        });
-    };
+// Update game logic to handle streak-based weather effects
+function updateStreak(newStreak) {
+    // ... existing streak update code ...
 
-    // 每30-60秒隨機生成一隻蟲子
-    const scheduleNextBug = () => {
-        if (!gameState.isPlaying) return;
-        const delay = Math.random() * 30000 + 30000; // 30-60秒
-        setTimeout(() => {
-            generateBug();
-            scheduleNextBug();
-        }, delay);
-    };
-
-    scheduleNextBug();
+    // Add weather effects based on streak
+    if (newStreak >= 5 && newStreak < 10) {
+        weatherEffects.startRain();
+    } else if (newStreak >= 10) {
+        weatherEffects.startSnow();
+    } else {
+        weatherEffects.stopWeather();
+    }
 }
+
+// 添加閒置檢測
+setInterval(() => {
+    if (gameState.isPlaying) {
+        gameState.idleTime = Date.now() - gameState.lastActionTime;
+        if (gameState.idleTime > 5000) {
+            achievementSystem.showFunnyEffect('sleep');
+            achievementSystem.unlockAchievement('SLEEPY_CODER');
+        }
+    }
+}, 1000);
+
+// 隨機出現bug
+setInterval(() => {
+    if (gameState.isPlaying && Math.random() < 0.1) {
+        achievementSystem.showFunnyEffect('bug');
+    }
+}, 10000); 
