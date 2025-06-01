@@ -1419,4 +1419,36 @@ function startGame() {
     document.querySelector('.game-container').classList.add('fade-in');
 }
 
+// 初始化活動欄
+function initializeActivityBar() {
+    const activityItems = document.querySelectorAll('.activity-item');
+    activityItems.forEach(item => {
+        item.addEventListener('click', () => {
+            // 移除其他項目的active狀態
+            activityItems.forEach(i => i.classList.remove('active'));
+            // 添加當前項目的active狀態
+            item.classList.add('active');
+            
+            // 根據標題切換面板
+            if (item.title === '成就系統') {
+                achievementSystem.togglePanel();
+            }
+        });
+    });
+}
+
+// 初始化遊戲
+async function initializeGame() {
+    await initializeCamera();
+    effectsSystem.init();
+    achievementSystem.init();
+    initializeActivityBar();
+}
+
+// 啟動遊戲初始化
+initializeGame().catch(error => {
+    console.error('遊戲初始化失敗:', error);
+    alert('遊戲初始化失敗，請重新整理頁面');
+});
+
 // 其他函數和事件處理...
