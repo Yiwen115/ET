@@ -11,41 +11,45 @@
   <body>
     <!-- Activity Bar -->
     <div class="activity-bar">
-        <div class="activity-item active" title="檔案總管">
-            📁
+        <div class="activity-item active" title="遊戲主畫面">
+            🎮
         </div>
-        <div class="activity-item" title="搜尋">
-            🔍
+        <div class="activity-item" title="成就系統">
+            🏆
         </div>
-        <div class="activity-item" title="Git">
+        <div class="activity-item" title="排行榜">
             📊
-            <div class="notification-badge">3</div>
         </div>
-        <div class="activity-item" title="Debug">
-            🐛
-        </div>
-        <div class="activity-item" title="擴充功能">
-            🧩
+        <div class="activity-item" title="設定">
+            ⚙️
         </div>
     </div>
 
-    <div class="game-container">
-        <div class="sidebar">
-            <!-- File Explorer -->
-            <div class="file-explorer">
-                <div class="file-item">📁 src</div>
-                <div class="file-item">📄 index.html</div>
-                <div class="file-item">📄 styles.css</div>
-                <div class="file-item">📄 game.js</div>
-                <div class="file-item">📄 package.json</div>
-            </div>
+    <!-- Ecosystem Level Indicator -->
+    <div class="ecosystem-level">
+        <span class="level-icon">🌱</span>
+        <span class="ecosystem-stage">初始階段</span>
+    </div>
 
+    <div class="game-container">
+        <!-- Code Ecosystem -->
+        <div class="ecosystem-container">
+            <div class="environment-layer">
+                <div class="code-tree">
+                    <div class="tree-trunk"></div>
+                    <!-- Branches will be added dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar">
             <!-- Camera Container with Terminal Style -->
             <div class="terminal-window">
                 <div class="terminal-header">
                     <div class="terminal-button terminal-close"></div>
                     <div class="terminal-button terminal-minimize"></div>
                     <div class="terminal-button terminal-maximize"></div>
+                    <span class="terminal-title">webcam.js - 手勢識別中</span>
                 </div>
                 <div class="camera-container">
                     <video id="input-video" playsinline></video>
@@ -59,6 +63,10 @@
 
             <!-- Player Stats with Problems Panel Style -->
             <div class="problems-panel">
+                <div class="panel-header">
+                    <span class="panel-icon">📊</span>
+                    <span class="panel-title">遊戲狀態</span>
+                </div>
                 <div class="stat-item">
                     <div class="stat-label">
                         <span>☕</span>
@@ -71,35 +79,33 @@
                 </div>
                 <div class="stat-item">
                     <div class="stat-label">
-                        <span>🏆</span>
-                        人生成就
+                        <span>🌱</span>
+                        程式生態系統
                     </div>
-                    <div class="achievements-display"></div>
+                    <div class="achievements-display">
+                        <!-- Achievement icons will be added dynamically -->
+                    </div>
                 </div>
             </div>
         </div>
 
         <div class="main-game-area">
-            <!-- Breadcrumbs -->
-            <div class="breadcrumbs">
-                <div class="breadcrumb-item">src</div>
-                <div class="breadcrumb-item">challenges</div>
-                <div class="breadcrumb-item">debug.js</div>
-            </div>
-
             <!-- Editor Tab -->
             <div class="editor-tab">
-                debug.js - Debug 人生模擬器
+                <span class="tab-icon">📝</span>
+                Debug 人生模擬器 - Level 1
             </div>
 
             <!-- Timer and Streak -->
-            <div class="timer-container">
-                <span>離 deadline 還有</span>
-                <div class="timer-value">20</div>
-            </div>
-            <div class="streak-badge">
-                <span>連續交付</span>
-                <div class="streak-count">0</div>
+            <div class="game-header">
+                <div class="timer-container">
+                    <span>離 deadline 還有</span>
+                    <div class="timer-value">20</div>
+                </div>
+                <div class="streak-badge">
+                    <span>連續交付</span>
+                    <div class="streak-count">0</div>
+                </div>
             </div>
 
             <!-- Code Editor Area -->
@@ -120,16 +126,16 @@
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-item">
-            <div class="branch-indicator">main</div>
+            <div class="branch-indicator">新手工程師</div>
         </div>
         <div class="status-item">
-            <span>🔌</span> LSP: 已連接
+            <span>💪</span> 連續答對: 0
         </div>
         <div class="status-item">
-            <span>📡</span> Port: 3000
+            <span>🌱</span> 生態等級: 1
         </div>
         <div class="status-item">
-            <span>💻</span> Node.js
+            <span>📈</span> 經驗值: 0
         </div>
     </div>
 
@@ -140,6 +146,7 @@
                 <div class="terminal-button terminal-close"></div>
                 <div class="terminal-button terminal-minimize"></div>
                 <div class="terminal-button terminal-maximize"></div>
+                <span class="terminal-title">正在編譯人生...</span>
             </div>
             <div class="loading-content">
                 <h2>> npm install life-experience</h2>
@@ -163,6 +170,7 @@
                 <div class="terminal-button terminal-close"></div>
                 <div class="terminal-button terminal-minimize"></div>
                 <div class="terminal-button terminal-maximize"></div>
+                <span class="terminal-title">遊戲教學</span>
             </div>
             <div class="tutorial-content">
                 <h2>🎮 Debug 人生模擬器</h2>
@@ -180,20 +188,12 @@
                         <div class="step-text">雙手往下，假裝在打程式但其實在摸魚</div>
                     </div>
                     <div class="tutorial-step">
-                        <div class="step-icon">💀</div>
-                        <div class="step-text">答錯太多次，就像被 Git 打回原形</div>
+                        <div class="step-icon">🌱</div>
+                        <div class="step-text">解鎖成就，讓你的程式生態系統不斷成長</div>
                     </div>
                     <div class="tutorial-step">
-                        <div class="step-icon">🏆</div>
-                        <div class="step-text">解鎖成就，收集各種慘烈人生經驗值</div>
-                    </div>
-                    <div class="tutorial-step">
-                        <div class="step-icon">⏰</div>
-                        <div class="step-text">時間倒數，就像每天被 deadline 追著跑</div>
-                    </div>
-                    <div class="tutorial-step">
-                        <div class="step-icon">❤️</div>
-                        <div class="step-text">生命值就像你的咖啡因存量，答對補充，答錯消耗</div>
+                        <div class="step-icon">🎯</div>
+                        <div class="step-text">完成目標，收集各種慘烈人生經驗值</div>
                     </div>
                 </div>
                 <button id="start-game" class="game-button">開始掙扎</button>
