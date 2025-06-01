@@ -23,7 +23,15 @@ const gameState = {
         usedKeyboard: false,
         lastSecondCounter: 0,
         quickAnswerStreak: 0
-    }
+    },
+    sameAnswerCount: 0,
+    lastAnswer: null,
+    idleTime: 0,
+    lastActionTime: Date.now(),
+    panicSwitches: 0,
+    changeCount: 0,
+    talkingTime: 0,
+    caughtBug: false
 };
 
 // 遊戲配置
@@ -531,91 +539,306 @@ const effectsSystem = {
     }
 };
 
-// 成就定義
-const achievements = {
-    QUICK_THINKER: {
-        id: 'quick_thinker',
-        title: '4%仔',
-        description: '10秒內答對題目，這題簡單啦！',
-        icon: '⚡',
-        condition: (timeLeft) => timeLeft >= 10
+// Achievement System
+const achievementSystem = {
+    achievements: {
+        QUICK_THINKER: {
+            id: 'quick_thinker',
+            title: '4%仔',
+            description: '10秒內答對題目',
+            icon: '⚡',
+            category: 'gameplay',
+            condition: (timeLeft) => timeLeft >= 10,
+            hint: '試著快速且正確地回答問題'
+        },
+        PERFECT_STREAK: {
+            id: 'perfect_streak',
+            title: '起飛啦',
+            description: '達成5連擊',
+            icon: '🚀',
+            category: 'gameplay',
+            condition: (streak) => streak >= 5,
+            hint: '連續答對5題'
+        },
+        RETAKE_MASTER: {
+            id: 'retake_master',
+            title: '大二孤寂淚',
+            description: '連續答錯3次',
+            icon: '😭',
+            category: 'special',
+            condition: (wrongStreak) => wrongStreak >= 3,
+            hint: '不小心連續答錯3次'
+        },
+        DEADLINE_FIGHTER: {
+            id: 'deadline_fighter',
+            title: '死線戰士',
+            description: '在最後1秒答對',
+            icon: '⏰',
+            category: 'special',
+            condition: (timeLeft) => timeLeft === 1,
+            hint: '在倒數最後一秒答題'
+        },
+        LUCKY_GUESS: {
+            id: 'lucky_guess',
+            title: '蒙對大師',
+            description: '生命值低於20%時答對',
+            icon: '🎰',
+            category: 'special',
+            condition: (health) => health <= 20,
+            hint: '在生命值很低時仍然答對'
+        },
+        WEEKEND_CODER: {
+            id: 'weekend_coder',
+            title: '週末才開始寫',
+            description: '連續錯2題後答對',
+            icon: '🎮',
+            category: 'hidden',
+            condition: (context) => context.wrongStreak >= 2 && context.isCorrect,
+            hint: '???'
+        },
+        KEYBOARD_WARRIOR: {
+            id: 'keyboard_warrior',
+            title: '鍵盤俠',
+            description: '使用鍵盤而不是手勢操作',
+            icon: '⌨️',
+            category: 'hidden',
+            condition: (context) => context.usedKeyboard,
+            hint: '???'
+        },
+        CTRL_C_MASTER: {
+            id: 'ctrl_c_master',
+            title: '複製貼上工程師',
+            description: '連續選擇同一個選項3次',
+            icon: '📋',
+            category: 'special',
+            condition: (context) => context.sameAnswerCount >= 3,
+            hint: '你最愛的按鍵組合是什麼？'
+        },
+        COFFEE_OVERFLOW: {
+            id: 'coffee_overflow',
+            title: '咖啡因溢出',
+            description: '生命值超過100%',
+            icon: '☕',
+            category: 'special',
+            condition: (context) => context.health > 100,
+            hint: '喝太多咖啡了吧！'
+        },
+        SLEEPY_CODER: {
+            id: 'sleepy_coder',
+            title: '打瞌睡工程師',
+            description: '超過5秒沒有任何操作',
+            icon: '😴',
+            category: 'hidden',
+            condition: (context) => context.idleTime > 5000,
+            hint: '也許該休息一下？'
+        },
+        PANIC_MASTER: {
+            id: 'panic_master',
+            title: '慌亂大師',
+            description: '在最後3秒內瘋狂切換選項',
+            icon: '😱',
+            category: 'hidden',
+            condition: (context) => context.panicSwitches >= 5,
+            hint: '冷靜點，深呼吸！'
+        },
+        STACKOVERFLOW_WARRIOR: {
+            id: 'stackoverflow_warrior',
+            title: 'Stack Overflow 戰士',
+            description: '不看題目直接選答案',
+            icon: '💻',
+            category: 'special',
+            condition: (context) => context.answerTime < 1,
+            hint: '這題我在 Stack Overflow 上看過！'
+        },
+        RUBBER_DUCK: {
+            id: 'rubber_duck',
+            title: '小黃鴨除錯法',
+            description: '對著攝像頭說話超過3秒',
+            icon: '🦆',
+            category: 'hidden',
+            condition: (context) => context.talkingTime > 3000,
+            hint: '試著跟你的程式對話'
+        },
+        PM_NIGHTMARE: {
+            id: 'pm_nightmare',
+            title: 'PM的噩夢',
+            description: '連續更改答案5次後答對',
+            icon: '😈',
+            category: 'special',
+            condition: (context) => context.changeCount >= 5 && context.isCorrect,
+            hint: '需求一直在改...'
+        },
+        BUG_HUNTER: {
+            id: 'bug_hunter',
+            title: '捕蟲達人',
+            description: '在答題過程中抓到一隻蟲',
+            icon: '🐛',
+            category: 'hidden',
+            condition: (context) => context.caughtBug,
+            hint: '仔細觀察螢幕...'
+        }
     },
-    PERFECT_STREAK: {
-        id: 'perfect_streak',
-        title: '起飛啦',
-        description: '5連擊！這就是實力！',
-        icon: '🚀',
-        condition: (streak) => streak >= 5
+
+    init() {
+        // 初始化成就面板
+        this.panel = document.querySelector('.achievements-panel');
+        this.list = document.querySelector('.achievements-list');
+        this.categoryButtons = document.querySelectorAll('.category-btn');
+        
+        // 綁定事件
+        document.querySelector('.activity-item[title="成就系統"]').addEventListener('click', () => {
+            this.togglePanel();
+        });
+        
+        document.querySelector('.close-achievements').addEventListener('click', () => {
+            this.hidePanel();
+        });
+        
+        this.categoryButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                this.filterAchievements(btn.dataset.category);
+            });
+        });
+
+        // 初始化成就列表
+        this.renderAchievements();
     },
-    RETAKE_MASTER: {
-        id: 'retake_master',
-        title: '大二孤寂淚',
-        description: '連續答錯3次，重修系列收藏家',
-        icon: '😭',
-        condition: (wrongStreak) => wrongStreak >= 3
+
+    togglePanel() {
+        this.panel.classList.toggle('show');
     },
-    DEADLINE_FIGHTER: {
-        id: 'deadline_fighter',
-        title: '死線戰士',
-        description: '在最後1秒答題',
-        icon: '⏰',
-        condition: (timeLeft) => timeLeft === 1
+
+    hidePanel() {
+        this.panel.classList.remove('show');
     },
-    LUCKY_GUESS: {
-        id: 'lucky_guess',
-        title: '蒙對大師',
-        description: '生命值低於20%時答對題目',
-        icon: '🎰',
-        condition: (health) => health <= 20
+
+    filterAchievements(category) {
+        this.categoryButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.category === category);
+        });
+        
+        this.renderAchievements(category);
     },
-    WEEKEND_CODER: {
-        id: 'weekend_coder',
-        title: '週末才開始寫',
-        description: '連續錯2題後答對',
-        icon: '🎮',
-        condition: (context) => context.wrongStreak >= 2 && context.isCorrect
+
+    renderAchievements(category = 'all') {
+        this.list.innerHTML = '';
+        
+        Object.values(this.achievements).forEach(achievement => {
+            if (category === 'all' || achievement.category === category) {
+                const isUnlocked = gameState.achievements.includes(achievement.id);
+                const card = document.createElement('div');
+                card.className = `achievement-card ${isUnlocked ? 'unlocked' : ''}`;
+                
+                card.innerHTML = `
+                    <div class="achievement-icon-wrapper">
+                        ${isUnlocked ? achievement.icon : '?'}
+                    </div>
+                    <div class="achievement-info">
+                        <div class="achievement-title">
+                            ${isUnlocked ? achievement.title : '???'}
+                        </div>
+                        <div class="achievement-description">
+                            ${isUnlocked ? achievement.description : achievement.hint}
+                        </div>
+                        ${isUnlocked ? `
+                            <div class="achievement-date">
+                                解鎖於 ${new Date().toLocaleDateString()}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                this.list.appendChild(card);
+            }
+        });
     },
-    STACK_OVERFLOW: {
-        id: 'stack_overflow',
-        title: 'Ctrl+C/V達人',
-        description: '不看題目直接選答案',
-        icon: '📋',
-        condition: (timeLeft) => timeLeft >= 19  // 超快回答
+
+    unlockAchievement(id) {
+        if (!gameState.achievements.includes(id)) {
+            gameState.achievements.push(id);
+            this.showUnlockNotification(this.achievements[id]);
+            this.renderAchievements();
+        }
     },
-    KEYBOARD_WARRIOR: {
-        id: 'keyboard_warrior',
-        title: '鍵盤俠',
-        description: '使用鍵盤而不是手勢操作',
-        icon: '⌨️',
-        condition: (context) => context.usedKeyboard
+
+    showUnlockNotification(achievement) {
+        const notification = document.createElement('div');
+        notification.className = 'achievement-notification';
+        notification.innerHTML = `
+            <div class="achievement-icon">${achievement.icon}</div>
+            <div class="achievement-content">
+                <div class="achievement-title">解鎖成就：${achievement.title}</div>
+                <div class="achievement-description">${achievement.description}</div>
+            </div>
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.remove();
+        }, 3000);
     },
-    DEBUG_MASTER: {
-        id: 'debug_master',
-        title: '除錯天菜',
-        description: '從錯誤中學習並連續答對',
-        icon: '🐛',
-        condition: (context) => context.wrongStreak >= 1 && context.streak >= 2
+
+    // 添加搞笑效果
+    showFunnyEffect(type) {
+        switch(type) {
+            case 'coffee':
+                this.showCoffeeOverflow();
+                break;
+            case 'bug':
+                this.showBugAnimation();
+                break;
+            case 'panic':
+                this.showPanicEffect();
+                break;
+            case 'sleep':
+                this.showSleepyEffect();
+                break;
+        }
     },
-    COFFEE_ADDICT: {
-        id: 'coffee_addict',
-        title: '咖啡成癮者',
-        description: '深夜模式解鎖',
-        icon: '☕',
-        condition: () => new Date().getHours() >= 23 || new Date().getHours() <= 5
+
+    showCoffeeOverflow() {
+        const coffee = document.createElement('div');
+        coffee.className = 'coffee-overflow';
+        coffee.innerHTML = '☕'.repeat(20);
+        document.body.appendChild(coffee);
+        setTimeout(() => coffee.remove(), 3000);
     },
-    PROCRASTINATOR: {
-        id: 'procrastinator',
-        title: '拖延大師',
-        description: '每題都在最後3秒答題',
-        icon: '🦥',
-        condition: (context) => context.lastSecondCounter >= 3
+
+    showBugAnimation() {
+        const bug = document.createElement('div');
+        bug.className = 'bug-animation';
+        bug.innerHTML = '🐛';
+        bug.style.left = Math.random() * window.innerWidth + 'px';
+        document.body.appendChild(bug);
+        
+        let caught = false;
+        bug.addEventListener('click', () => {
+            if (!caught) {
+                caught = true;
+                bug.style.animation = 'bugCaught 0.5s forwards';
+                this.unlockAchievement('BUG_HUNTER');
+                setTimeout(() => bug.remove(), 500);
+            }
+        });
+
+        setTimeout(() => {
+            if (!caught) bug.remove();
+        }, 5000);
     },
-    SPEED_DEMON: {
-        id: 'speed_demon',
-        title: '手速超車',
-        description: '3秒內連續答對兩題',
-        icon: '⚡',
-        condition: (context) => context.quickAnswerStreak >= 2
+
+    showPanicEffect() {
+        const container = document.querySelector('.game-container');
+        container.classList.add('panic');
+        setTimeout(() => container.classList.remove('panic'), 3000);
+    },
+
+    showSleepyEffect() {
+        const zzz = document.createElement('div');
+        zzz.className = 'sleepy-effect';
+        zzz.innerHTML = '💤';
+        document.body.appendChild(zzz);
+        setTimeout(() => zzz.remove(), 3000);
     }
 };
 
@@ -792,6 +1015,32 @@ function selectOption(index) {
         selectedOption.classList.add('selected');
         gameState.selectedOption = index;
     }
+    
+    // 追蹤連續選擇相同選項
+    if (index === gameState.lastAnswer) {
+        gameState.sameAnswerCount++;
+        if (gameState.sameAnswerCount >= 3) {
+            achievementSystem.unlockAchievement('CTRL_C_MASTER');
+        }
+    } else {
+        gameState.sameAnswerCount = 1;
+    }
+    gameState.lastAnswer = index;
+
+    // 追蹤更改次數
+    gameState.changeCount++;
+    
+    // 在最後3秒內切換選項
+    if (gameState.timeLeft <= 3) {
+        gameState.panicSwitches++;
+        if (gameState.panicSwitches >= 5) {
+            achievementSystem.showFunnyEffect('panic');
+        }
+    }
+
+    // 重置閒置時間
+    gameState.idleTime = 0;
+    gameState.lastActionTime = Date.now();
 }
 
 // 檢查答案
@@ -827,6 +1076,11 @@ function checkAnswer(selectedIndex) {
         
         showFeedback(true, gameState.currentChallenge.explanation, 
             `+${timeBonus} 時間獎勵\n+${streakBonus} 連擊獎勵！`);
+
+        if (gameState.health > 100) {
+            achievementSystem.showFunnyEffect('coffee');
+            achievementSystem.unlockAchievement('COFFEE_OVERFLOW');
+        }
     } else {
         gameState.health = Math.max(0, gameState.health - config.healthLossOnWrong);
         gameState.streak = 0;
@@ -887,7 +1141,7 @@ function updateUI() {
     const achievementsDisplay = document.querySelector('.achievements-display');
     if (achievementsDisplay) {
         achievementsDisplay.innerHTML = gameState.achievements.map(id => {
-            const achievement = achievements[id];
+            const achievement = achievementSystem.achievements[id];
             return `
                 <div class="achievement-badge" title="${achievement.description}">
                     <div class="achievement-icon">${achievement.icon}</div>
@@ -903,71 +1157,19 @@ function updateUI() {
 
 // 檢查並授予成就
 function checkAchievements(isCorrect) {
-    // 更新上下文
-    gameState.context = {
+    const context = {
         wrongStreak: gameState.wrongStreak,
         streak: gameState.streak,
         isCorrect: isCorrect,
         usedKeyboard: gameState.usedKeyboard,
-        lastSecondCounter: gameState.lastSecondCounter,
-        quickAnswerStreak: gameState.quickAnswerStreak
+        timeLeft: gameState.timeLeft,
+        health: gameState.health
     };
 
-    // 檢查時間相關成就
-    const now = Date.now();
-    if (now - gameState.lastAnswerTime <= 3000) {
-        gameState.quickAnswerStreak++;
-    } else {
-        gameState.quickAnswerStreak = 0;
-    }
-    gameState.lastAnswerTime = now;
-
-    // 檢查最後一秒答題
-    if (gameState.timeLeft <= 3) {
-        gameState.lastSecondCounter++;
-    } else {
-        gameState.lastSecondCounter = 0;
-    }
-
-    // 隨機成就檢查（20%機率觸發檢查）
-    if (Math.random() < 0.2) {
-        const randomAchievements = [
-            'COFFEE_ADDICT',
-            'KEYBOARD_WARRIOR',
-            'STACK_OVERFLOW',
-            'WEEKEND_CODER'
-        ];
-        const randomAchievement = randomAchievements[Math.floor(Math.random() * randomAchievements.length)];
-        if (!gameState.achievements.includes(randomAchievement)) {
-            const achievement = achievements[randomAchievement];
-            if (achievement.condition(gameState.context)) {
-                gameState.achievements.push(randomAchievement);
-                effectsSystem.showAchievement(
-                    achievement.title,
-                    achievement.description,
-                    achievement.icon
-                );
-            }
-        }
-    }
-
-    // 檢查所有成就
-    Object.entries(achievements).forEach(([key, achievement]) => {
-        if (!gameState.achievements.includes(key)) {
-            const conditionMet = achievement.condition(
-                key.includes('STREAK') ? gameState.streak :
-                key.includes('HEALTH') ? gameState.health :
-                key.includes('TIME') ? gameState.timeLeft :
-                gameState.context
-            );
-            
-            if (conditionMet) {
-                gameState.achievements.push(key);
-                effectsSystem.showAchievement(
-                    achievement.title,
-                    achievement.description,
-                    achievement.icon
-                );
+    Object.entries(achievementSystem.achievements).forEach(([id, achievement]) => {
+        if (!gameState.achievements.includes(id)) {
+            if (achievement.condition(context)) {
+                achievementSystem.unlockAchievement(id);
             }
         }
     });
@@ -1060,7 +1262,7 @@ function endGame() {
                     <h3>獲得的成就</h3>
                     <div class="achievements-grid">
                         ${gameState.achievements.map(id => {
-                            const achievement = achievements[id];
+                            const achievement = achievementSystem.achievements[id];
                             return `
                                 <div class="achievement-badge" title="${achievement.description}">
                                     <div class="achievement-icon">${achievement.icon}</div>
@@ -1155,4 +1357,125 @@ document.addEventListener('keydown', (e) => {
 // 在遊戲開始時初始化特效系統
 window.addEventListener('load', () => {
     effectsSystem.init();
-}); 
+    achievementSystem.init();
+});
+
+// Weather Effects Control
+class WeatherEffects {
+    constructor() {
+        this.container = document.querySelector('.weather-container');
+        this.isRaining = false;
+        this.isSnowing = false;
+        this.maxParticles = 100;
+        this.particles = [];
+    }
+
+    startRain() {
+        if (this.isRaining) return;
+        this.isSnowing = false;
+        this.isRaining = true;
+        this.clearParticles();
+        this.createRain();
+    }
+
+    startSnow() {
+        if (this.isSnowing) return;
+        this.isRaining = false;
+        this.isSnowing = true;
+        this.clearParticles();
+        this.createSnow();
+    }
+
+    stopWeather() {
+        this.isRaining = false;
+        this.isSnowing = false;
+        this.clearParticles();
+    }
+
+    clearParticles() {
+        this.particles.forEach(particle => particle.remove());
+        this.particles = [];
+    }
+
+    createRain() {
+        if (!this.isRaining) return;
+
+        const raindrop = document.createElement('div');
+        raindrop.className = 'raindrop';
+        raindrop.style.left = `${Math.random() * 100}vw`;
+        raindrop.style.animationDuration = `${Math.random() * 1 + 0.5}s`;
+        this.container.appendChild(raindrop);
+        this.particles.push(raindrop);
+
+        // Remove raindrop after animation
+        raindrop.addEventListener('animationend', () => {
+            raindrop.remove();
+            this.particles = this.particles.filter(p => p !== raindrop);
+        });
+
+        // Continue creating raindrops
+        if (this.particles.length < this.maxParticles) {
+            requestAnimationFrame(() => this.createRain());
+        }
+    }
+
+    createSnow() {
+        if (!this.isSnowing) return;
+
+        const snowflake = document.createElement('div');
+        snowflake.className = 'snowflake';
+        snowflake.textContent = '❄';
+        snowflake.style.left = `${Math.random() * 100}vw`;
+        snowflake.style.animationDuration = `${Math.random() * 3 + 2}s`;
+        snowflake.style.opacity = Math.random() * 0.5 + 0.5;
+        snowflake.style.fontSize = `${Math.random() * 10 + 5}px`;
+        this.container.appendChild(snowflake);
+        this.particles.push(snowflake);
+
+        // Remove snowflake after animation
+        snowflake.addEventListener('animationend', () => {
+            snowflake.remove();
+            this.particles = this.particles.filter(p => p !== snowflake);
+        });
+
+        // Continue creating snowflakes
+        if (this.particles.length < this.maxParticles) {
+            requestAnimationFrame(() => this.createSnow());
+        }
+    }
+}
+
+// Initialize weather effects
+const weatherEffects = new WeatherEffects();
+
+// Update game logic to handle streak-based weather effects
+function updateStreak(newStreak) {
+    // ... existing streak update code ...
+
+    // Add weather effects based on streak
+    if (newStreak >= 5 && newStreak < 10) {
+        weatherEffects.startRain();
+    } else if (newStreak >= 10) {
+        weatherEffects.startSnow();
+    } else {
+        weatherEffects.stopWeather();
+    }
+}
+
+// 添加閒置檢測
+setInterval(() => {
+    if (gameState.isPlaying) {
+        gameState.idleTime = Date.now() - gameState.lastActionTime;
+        if (gameState.idleTime > 5000) {
+            achievementSystem.showFunnyEffect('sleep');
+            achievementSystem.unlockAchievement('SLEEPY_CODER');
+        }
+    }
+}, 1000);
+
+// 隨機出現bug
+setInterval(() => {
+    if (gameState.isPlaying && Math.random() < 0.1) {
+        achievementSystem.showFunnyEffect('bug');
+    }
+}, 10000); 
