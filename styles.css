@@ -10,6 +10,8 @@
     --keyword-color: #c586c0;     /* VS Code keyword purple */
     --string-color: #ce9178;      /* VS Code string color */
     --line-number-color: #858585; /* VS Code line number color */
+    --panel-bg: #252526;
+    --border-color: rgba(255, 255, 255, 0.1);
 }
 
 * {
@@ -25,6 +27,8 @@ body {
     min-height: 100vh;
     display: flex;
     overflow: hidden;
+    margin: 0;
+    line-height: 1.6;
 }
 
 .loading-screen {
@@ -92,6 +96,12 @@ body {
     border-radius: 8px;
     overflow: hidden;
     margin-top: 10px;
+    background: var(--panel-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
 }
 
 #input-video, #hand-canvas {
@@ -113,9 +123,11 @@ body {
     width: 100%;
     padding: 10px;
     background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(5px);
     display: flex;
     justify-content: space-between;
     gap: 10px;
+    font-size: 14px;
 }
 
 .hand-guide {
@@ -181,16 +193,19 @@ body {
 }
 
 .health-bar {
-    height: 8px;
+    height: 10px;
     background: rgba(255, 0, 0, 0.2);
-    border-radius: 4px;
+    border-radius: 5px;
     overflow: hidden;
+    margin-top: 10px;
+    position: relative;
 }
 
 .health-fill {
     height: 100%;
     background: linear-gradient(90deg, var(--success-color), var(--accent-color));
     transition: width 0.3s ease;
+    border-radius: 5px;
 }
 
 .health-text {
@@ -200,7 +215,7 @@ body {
     transform: translate(-50%, -50%);
     color: white;
     font-size: 12px;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
 }
 
 .timer-container {
@@ -247,12 +262,14 @@ body {
     left: 50%;
     transform: translate(-50%, -50%);
     background: rgba(0, 0, 0, 0.9);
-    padding: 20px;
+    padding: 25px;
     border-radius: 15px;
     text-align: center;
     animation: fadeInScale 0.3s ease;
     z-index: 100;
     min-width: 300px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .feedback.correct {
@@ -265,8 +282,8 @@ body {
 
 .feedback-title {
     font-size: 24px;
-    margin-bottom: 10px;
-    font-family: 'Press Start 2P', cursive;
+    margin-bottom: 15px;
+    font-weight: bold;
 }
 
 .feedback.correct .feedback-title {
@@ -362,12 +379,14 @@ body {
 }
 
 .main-game-area {
-    background: #252526;
-    border-radius: 8px;
+    background: var(--panel-bg);
+    border-radius: 10px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
     height: calc(100vh - 40px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
 }
 
 #game-canvas {
@@ -401,14 +420,16 @@ body {
 }
 
 .code-block {
-    background: #1e1e1e;
-    border-radius: 8px;
-    padding: 20px 20px 20px 60px;
-    position: relative;
+    background: var(--background-color);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px;
     font-family: 'Fira Code', monospace;
     font-size: 16px;
-    line-height: 1.5;
+    line-height: 1.6;
     overflow: auto;
+    box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--border-color);
 }
 
 .code-block::before {
@@ -425,10 +446,8 @@ body {
 }
 
 .code-block pre {
-    font-family: 'Fira Code', monospace;
-    font-size: 24px;
-    line-height: 1.6;
-    color: var(--text-color);
+    margin: 0;
+    padding: 0;
     white-space: pre-wrap;
 }
 
@@ -443,25 +462,28 @@ body {
 
 .option {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
-    padding: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 16px;
     transition: all 0.2s ease;
     cursor: pointer;
+    min-height: 60px;
 }
 
 .option:hover {
     background: rgba(255, 255, 255, 0.1);
     transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .option.selected {
     border-color: var(--primary-color);
     background: rgba(0, 255, 157, 0.1);
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.2);
 }
 
 .option.correct {
@@ -495,12 +517,13 @@ body {
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.8);
-    padding: 15px 30px;
-    border-radius: 15px;
-    font-size: 18px;
+    padding: 12px 24px;
+    border-radius: 20px;
+    font-size: 14px;
     color: var(--accent-color);
-    border: 2px solid var(--accent-color);
+    border: 1px solid var(--accent-color);
     backdrop-filter: blur(5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 .game-overlay {
@@ -614,133 +637,36 @@ body {
 @media (max-width: 1200px) {
     .game-container {
         grid-template-columns: 1fr;
-        height: auto;
-        min-height: 100vh;
     }
 
     .sidebar {
-        flex-direction: row;
-        align-items: center;
+        height: auto;
     }
 
     .camera-container {
-        width: 300px;
-        flex-shrink: 0;
-    }
-
-    .options-container {
-        max-height: 400px;
-    }
-
-    .code-block pre {
-        font-size: 20px;
+        max-height: 300px;
     }
 }
 
 @media (max-width: 768px) {
     .game-container {
-        padding: 10px;
+        margin-left: 0;
+        width: 100vw;
     }
 
-    .sidebar {
-        flex-direction: column;
-    }
-
-    .camera-container {
+    .activity-bar {
+        bottom: 0;
+        top: auto;
         width: 100%;
-    }
-
-    .challenge-header {
-        flex-direction: column;
-    }
-
-    .challenge-title {
-        font-size: 20px;
-        text-align: center;
-    }
-
-    .timer-container {
-        width: 100%;
+        height: 50px;
+        flex-direction: row;
         justify-content: center;
+        padding: 0;
     }
 
-    .code-block {
-        width: 100%;
-        padding: 20px;
-    }
-
-    .code-block pre {
-        font-size: 16px;
-    }
-
-    .options-container {
-        grid-template-columns: 1fr;
-        grid-template-rows: repeat(4, 1fr);
-        gap: 15px;
-        aspect-ratio: auto;
-        max-height: none;
-    }
-
-    .option {
-        font-size: 18px;
-        padding: 15px;
-    }
-
-    .option:nth-child(1) { grid-area: 1 / 1 / 2 / 2; }
-    .option:nth-child(2) { grid-area: 2 / 1 / 3 / 2; }
-    .option:nth-child(3) { grid-area: 3 / 1 / 4 / 2; }
-    .option:nth-child(4) { grid-area: 4 / 1 / 5 / 2; }
-    .option:nth-child(5) { display: none; }
-}
-
-@media (max-width: 480px) {
-    .game-container {
-        padding: 5px;
-    }
-
-    .camera-container {
-        height: 180px;
-    }
-
-    .player-stats {
-        grid-template-columns: 1fr;
-    }
-
-    .challenge-container {
-        padding: 10px;
-        gap: 10px;
-    }
-
-    .challenge-title {
-        font-size: 16px;
-        padding: 12px;
-    }
-
-    .code-block {
-        padding: 15px;
-    }
-
-    .code-block pre {
-        font-size: 14px;
-    }
-
-    .option {
-        min-height: 60px;
-        padding: 15px;
-        font-size: 16px;
-    }
-
-    .timer-container {
-        padding: 8px 12px;
-    }
-
-    .timer-value {
-        font-size: 18px;
-    }
-
-    .gesture-hint {
-        font-size: 12px;
-        padding: 8px 15px;
+    .status-bar {
+        left: 0;
+        bottom: 50px;
     }
 }
 
@@ -1367,23 +1293,26 @@ body {
     bottom: 0;
     left: 50px;
     right: 0;
-    height: 22px;
-    background: #007acc;
+    height: 30px;
+    background: var(--panel-bg);
     display: flex;
     align-items: center;
-    padding: 0 10px;
-    font-size: 12px;
-    color: #fff;
-    z-index: 1000;
+    padding: 0 20px;
+    font-size: 14px;
+    border-top: 1px solid var(--border-color);
 }
 
 .status-item {
     display: flex;
     align-items: center;
-    gap: 5px;
-    padding: 0 10px;
+    gap: 8px;
+    padding: 0 15px;
+    border-right: 1px solid var(--border-color);
     height: 100%;
-    border-right: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.status-item:last-child {
+    border-right: none;
 }
 
 /* Git-like branch indicator */
@@ -1511,12 +1440,14 @@ body {
 
 /* Add VS Code-like tab */
 .editor-tab {
-    background: #2d2d2d;
-    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px 20px;
+    font-size: 16px;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid var(--accent-color);
+    gap: 10px;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .editor-tab::before {
@@ -1553,19 +1484,18 @@ body {
 
 /* Add problems panel style */
 .problems-panel {
-    background: #252526;
-    border-radius: 8px;
+    background: var(--panel-bg);
+    border-radius: 10px;
     overflow: hidden;
     flex: 1;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid var(--border-color);
 }
 
 .panel-header {
-    background: #2d2d2d;
-    padding: 8px 12px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 15px;
+    font-weight: 500;
 }
 
 .panel-icon {
@@ -1665,13 +1595,13 @@ body {
     top: 0;
     bottom: 0;
     width: 50px;
-    background: #333333;
+    background: var(--panel-bg);
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 10px;
+    padding-top: 20px;
     gap: 10px;
-    z-index: 1001;
+    border-right: 1px solid var(--border-color);
 }
 
 .activity-item {
@@ -1685,16 +1615,18 @@ body {
     cursor: pointer;
     border-left: 2px solid transparent;
     transition: all 0.2s ease;
+    border-radius: 8px;
 }
 
 .activity-item:hover {
-    color: #fff;
     background: rgba(255, 255, 255, 0.1);
+    color: var(--primary-color);
 }
 
 .activity-item.active {
-    border-left-color: var(--accent-color);
-    color: #fff;
+    border-left-color: var(--primary-color);
+    color: var(--primary-color);
+    background: rgba(0, 255, 157, 0.1);
 }
 
 /* Add notification badge */
@@ -1924,8 +1856,8 @@ body {
     width: 80%;
     max-width: 800px;
     height: 80vh;
-    background: var(--background-color);
-    border: 1px solid var(--accent-color);
+    background: var(--panel-bg);
+    border: 1px solid var(--border-color);
     border-radius: 8px;
     display: none;
     flex-direction: column;
@@ -1941,9 +1873,9 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 15px 20px;
-    background: #2d2d2d;
-    border-bottom: 1px solid var(--accent-color);
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .achievements-header h2 {
@@ -1974,10 +1906,10 @@ body {
 
 .category-btn {
     background: rgba(255, 255, 255, 0.1);
-    border: 1px solid transparent;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
     color: var(--text-color);
-    padding: 8px 15px;
-    border-radius: 4px;
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -1987,7 +1919,7 @@ body {
 }
 
 .category-btn.active {
-    background: var(--accent-color);
+    background: var(--primary-color);
     color: var(--background-color);
 }
 
@@ -2001,10 +1933,10 @@ body {
 }
 
 .achievement-card {
-    background: #2d2d2d;
-    border: 1px solid var(--accent-color);
-    border-radius: 8px;
-    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 20px;
     display: flex;
     gap: 15px;
     transition: all 0.3s ease;
