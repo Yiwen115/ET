@@ -212,24 +212,31 @@ body {
 
 .timer-container {
     position: absolute;
-    top: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(0, 0, 0, 0.7);
-    padding: 10px 20px;
-    border-radius: 15px;
+    top: 30px;
+    right: 30px;
+    background: rgba(0, 0, 0, 0.8);
+    padding: 15px 25px;
+    border-radius: 20px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    border: 1px solid var(--accent-color);
+    gap: 15px;
+    border: 2px solid var(--accent-color);
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
 }
 
 .timer-value {
     font-family: 'Press Start 2P', cursive;
-    font-size: 24px;
+    font-size: 28px;
     color: var(--text-color);
-    min-width: 40px;
+    min-width: 50px;
     text-align: center;
+    text-shadow: 0 0 10px var(--accent-color);
+}
+
+.timer-container::before {
+    content: '⏱';
+    font-size: 24px;
+    color: var(--accent-color);
 }
 
 .streak-badge {
@@ -395,51 +402,58 @@ body {
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
     background: rgba(0, 0, 0, 0.8);
-    padding: 20px;
+    padding: 40px;
+    gap: 30px;
 }
 
 .challenge-title {
     color: var(--primary-color);
     margin-bottom: 20px;
     font-family: 'Press Start 2P', cursive;
-    font-size: 20px;
+    font-size: 24px;
     text-align: center;
     text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
+    width: 100%;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 15px;
+    border: 1px solid var(--accent-color);
 }
 
 .code-block {
     background: rgba(0, 0, 0, 0.7);
     border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 30px;
-    border: 1px solid var(--accent-color);
-    max-width: 90%;
+    padding: 30px;
+    margin: 20px auto;
+    border: 2px solid var(--accent-color);
+    max-width: 80%;
     width: 100%;
-    margin: 0 auto 30px;
     position: relative;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
 }
 
 .code-block::before {
-    content: 'JavaScript';
+    content: 'Question';
     position: absolute;
-    top: -12px;
+    top: -15px;
     left: 20px;
     background: var(--background-color);
-    padding: 0 10px;
+    padding: 5px 15px;
     color: var(--accent-color);
     font-size: 14px;
-    border-radius: 4px;
+    border-radius: 8px;
+    border: 1px solid var(--accent-color);
 }
 
 .code-block pre {
     margin: 0;
     font-family: 'Fira Code', monospace;
     color: var(--text-color);
-    font-size: 16px;
-    line-height: 1.5;
+    font-size: 18px;
+    line-height: 1.6;
     white-space: pre-wrap;
 }
 
@@ -449,40 +463,52 @@ body {
         ". top ."
         "left center right"
         ". bottom .";
-    gap: 20px;
+    gap: 25px;
     width: 100%;
-    max-width: 800px;
-    padding: 20px;
+    max-width: 900px;
+    padding: 30px;
     position: relative;
+    margin-top: 20px;
 }
 
 .option {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(255, 255, 255, 0.2);
     border-radius: 15px;
-    padding: 20px;
+    padding: 25px;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 80px;
+    min-height: 100px;
     position: relative;
-    font-size: 16px;
+    font-size: 18px;
     color: var(--text-color);
+    cursor: pointer;
+    backdrop-filter: blur(5px);
+}
+
+.option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.2);
 }
 
 .option::before {
     content: '';
     position: absolute;
-    width: 30px;
-    height: 30px;
-    background: rgba(255, 255, 255, 0.1);
+    width: 40px;
+    height: 40px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 2px solid var(--accent-color);
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 18px;
+    color: var(--accent-color);
+    transition: all 0.3s ease;
 }
 
 .option[data-position="top"] { 
@@ -490,7 +516,7 @@ body {
 }
 .option[data-position="top"]::before {
     content: '↑';
-    bottom: calc(100% + 5px);
+    bottom: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%);
 }
@@ -500,7 +526,7 @@ body {
 }
 .option[data-position="right"]::before {
     content: '→';
-    left: calc(100% + 5px);
+    left: calc(100% + 10px);
     top: 50%;
     transform: translateY(-50%);
 }
@@ -510,7 +536,7 @@ body {
 }
 .option[data-position="bottom"]::before {
     content: '↓';
-    top: calc(100% + 5px);
+    top: calc(100% + 10px);
     left: 50%;
     transform: translateX(-50%);
 }
@@ -520,7 +546,7 @@ body {
 }
 .option[data-position="left"]::before {
     content: '←';
-    right: calc(100% + 5px);
+    right: calc(100% + 10px);
     top: 50%;
     transform: translateY(-50%);
 }
@@ -529,42 +555,74 @@ body {
     grid-area: center;
     background: rgba(0, 0, 0, 0.5);
     border: none;
-    font-size: 32px;
+    font-size: 36px;
     color: var(--accent-color);
+    text-shadow: 0 0 10px var(--accent-color);
 }
 
 .option.selected {
     border-color: var(--primary-color);
-    background: rgba(0, 255, 157, 0.2);
+    background: rgba(0, 255, 157, 0.1);
     transform: scale(1.05);
-    box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
+    box-shadow: 0 0 30px rgba(0, 255, 157, 0.2);
 }
 
 .option.correct {
     border-color: var(--success-color);
     background: rgba(35, 209, 96, 0.1);
-    animation: pulse 1s infinite;
+    animation: pulseSuccess 1s infinite;
 }
 
 .option.wrong {
     border-color: var(--error-color);
     background: rgba(255, 56, 96, 0.1);
-    animation: shake 0.5s;
+    animation: pulseError 0.5s;
+}
+
+@keyframes pulseSuccess {
+    0% {
+        box-shadow: 0 0 0 0 rgba(35, 209, 96, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 15px rgba(35, 209, 96, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(35, 209, 96, 0);
+    }
+}
+
+@keyframes pulseError {
+    0% {
+        transform: translateX(0);
+        box-shadow: 0 0 0 0 rgba(255, 56, 96, 0.4);
+    }
+    25% {
+        transform: translateX(-10px);
+    }
+    75% {
+        transform: translateX(10px);
+    }
+    100% {
+        transform: translateX(0);
+        box-shadow: 0 0 0 15px rgba(255, 56, 96, 0);
+    }
 }
 
 .gesture-hint {
     position: absolute;
-    bottom: 20px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     background: rgba(0, 0, 0, 0.8);
-    padding: 12px 20px;
-    border-radius: 10px;
-    font-size: 16px;
+    padding: 15px 30px;
+    border-radius: 15px;
+    font-size: 18px;
     color: var(--accent-color);
-    border: 1px solid var(--accent-color);
+    border: 2px solid var(--accent-color);
     white-space: nowrap;
     z-index: 20;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    backdrop-filter: blur(5px);
 }
 
 .game-overlay {
@@ -672,18 +730,6 @@ body {
         opacity: 1;
         transform: translateY(0);
     }
-}
-
-@keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-5px); }
-    75% { transform: translateX(5px); }
 }
 
 @media (max-width: 1200px) {
