@@ -211,9 +211,7 @@ body {
 }
 
 .timer-container {
-    position: absolute;
-    top: 30px;
-    right: 30px;
+    position: static;
     background: rgba(0, 0, 0, 0.8);
     padding: 15px 25px;
     border-radius: 20px;
@@ -222,6 +220,7 @@ body {
     gap: 15px;
     border: 2px solid var(--accent-color);
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    margin-left: auto;
 }
 
 .timer-value {
@@ -400,37 +399,42 @@ body {
     position: absolute;
     width: 100%;
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    align-items: center;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
     background: rgba(0, 0, 0, 0.8);
-    padding: 40px;
-    gap: 30px;
+    padding: 20px;
+    gap: 20px;
+}
+
+.challenge-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 20px;
 }
 
 .challenge-title {
     color: var(--primary-color);
-    margin-bottom: 20px;
     font-family: 'Press Start 2P', cursive;
     font-size: 24px;
-    text-align: center;
+    text-align: left;
     text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
-    width: 100%;
-    padding: 20px;
     background: rgba(0, 0, 0, 0.5);
     border-radius: 15px;
     border: 1px solid var(--accent-color);
+    padding: 20px;
+    flex: 1;
 }
 
 .code-block {
     background: rgba(0, 0, 0, 0.7);
     border-radius: 15px;
     padding: 30px;
-    margin: 20px auto;
     border: 2px solid var(--accent-color);
-    max-width: 80%;
     width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
     position: relative;
     box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
 }
@@ -452,7 +456,7 @@ body {
     margin: 0;
     font-family: 'Fira Code', monospace;
     color: var(--text-color);
-    font-size: 18px;
+    font-size: 20px;
     line-height: 1.6;
     white-space: pre-wrap;
 }
@@ -463,27 +467,27 @@ body {
         ". top ."
         "left center right"
         ". bottom .";
-    gap: 25px;
+    gap: 30px;
     width: 100%;
-    max-width: 900px;
-    padding: 30px;
-    position: relative;
-    margin-top: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    align-self: center;
 }
 
 .option {
     background: rgba(255, 255, 255, 0.05);
     border: 2px solid rgba(255, 255, 255, 0.2);
-    border-radius: 15px;
-    padding: 25px;
+    border-radius: 20px;
+    padding: 30px;
     transition: all 0.3s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
-    min-height: 100px;
+    min-height: 120px;
     position: relative;
-    font-size: 18px;
+    font-size: 22px;
     color: var(--text-color);
     cursor: pointer;
     backdrop-filter: blur(5px);
@@ -753,18 +757,239 @@ body {
     .game-container {
         padding: 10px;
         height: auto;
+        min-height: 100vh;
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
     .sidebar {
         flex-direction: column;
+        gap: 10px;
     }
 
     .camera-container {
         width: 100%;
+        height: 200px;
+    }
+
+    .player-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        padding: 15px;
+        gap: 10px;
+    }
+
+    .challenge-container {
+        padding: 15px;
+        gap: 15px;
+    }
+
+    .challenge-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .challenge-title {
+        font-size: 18px;
+        padding: 15px;
+    }
+
+    .timer-container {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .code-block {
+        padding: 20px;
+    }
+
+    .code-block pre {
+        font-size: 16px;
     }
 
     .options-container {
+        grid-template-areas: 
+            "top"
+            "right"
+            "bottom"
+            "left";
         grid-template-columns: 1fr;
+        gap: 15px;
+        padding: 10px;
+    }
+
+    .option {
+        min-height: 80px;
+        padding: 20px;
+        font-size: 18px;
+    }
+
+    .option::before {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .option[data-position="center"] {
+        display: none;
+    }
+
+    .option[data-position="top"]::before,
+    .option[data-position="bottom"]::before,
+    .option[data-position="left"]::before,
+    .option[data-position="right"]::before {
+        position: static;
+        margin-right: 10px;
+        transform: none;
+    }
+
+    .gesture-hint {
+        bottom: 10px;
+        padding: 10px 20px;
+        font-size: 14px;
+        width: 90%;
+        text-align: center;
+    }
+
+    .feedback {
+        width: 90%;
+        padding: 15px;
+    }
+
+    .feedback-title {
+        font-size: 18px;
+    }
+
+    .bonus-info,
+    .streak-info {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .game-container {
+        padding: 5px;
+    }
+
+    .camera-container {
+        height: 180px;
+    }
+
+    .player-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .challenge-container {
+        padding: 10px;
+        gap: 10px;
+    }
+
+    .challenge-title {
+        font-size: 16px;
+        padding: 12px;
+    }
+
+    .code-block {
+        padding: 15px;
+    }
+
+    .code-block pre {
+        font-size: 14px;
+    }
+
+    .option {
+        min-height: 60px;
+        padding: 15px;
+        font-size: 16px;
+    }
+
+    .timer-container {
+        padding: 8px 12px;
+    }
+
+    .timer-value {
+        font-size: 18px;
+    }
+
+    .gesture-hint {
+        font-size: 12px;
+        padding: 8px 15px;
+    }
+}
+
+/* 修復 iOS Safari 的特定問題 */
+@supports (-webkit-touch-callout: none) {
+    .game-container {
+        min-height: -webkit-fill-available;
+    }
+
+    .option {
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .code-block,
+    .option,
+    .timer-container,
+    .gesture-hint {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: blur(5px);
+    }
+}
+
+/* 處理橫屏模式 */
+@media (max-width: 896px) and (orientation: landscape) {
+    .game-container {
+        grid-template-columns: 300px 1fr;
+        min-height: 100vh;
+    }
+
+    .sidebar {
+        height: 100vh;
+        overflow-y: auto;
+    }
+
+    .camera-container {
+        height: 150px;
+    }
+
+    .options-container {
+        grid-template-areas: 
+            ". top ."
+            "left center right"
+            ". bottom .";
+        grid-template-columns: 1fr auto 1fr;
+        gap: 20px;
+    }
+
+    .option {
+        min-height: 80px;
+        font-size: 18px;
+    }
+
+    .challenge-container {
+        grid-template-rows: auto auto 1fr;
+    }
+
+    .challenge-header {
+        flex-direction: row;
+    }
+
+    .code-block {
+        max-width: 90%;
+        margin: 10px auto;
+    }
+}
+
+/* 確保觸控設備的交互效果 */
+@media (hover: none) {
+    .option:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    .option:active {
+        background: rgba(255, 255, 255, 0.15);
+        transform: scale(0.98);
     }
 }
 
@@ -812,4 +1037,21 @@ body {
 .pause-content button:hover {
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+}
+
+/* 大屏幕優化 */
+@media (min-width: 1440px) {
+    .challenge-container {
+        padding: 40px;
+        gap: 30px;
+    }
+
+    .code-block pre {
+        font-size: 24px;
+    }
+
+    .option {
+        min-height: 140px;
+        font-size: 24px;
+    }
 } 
