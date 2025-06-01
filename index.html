@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Debug 人生模擬器</title>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Noto+Sans+TC:wght@400;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Press+Start+2P&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
   </head>
 
@@ -14,10 +14,23 @@
         <!-- Weather effects will be added dynamically -->
     </div>
 
+    <!-- Ecosystem Container -->
+    <div class="ecosystem-container">
+        <div class="environment-layer">
+            <!-- Dynamic environment elements -->
+        </div>
+    </div>
+
     <!-- Achievements Panel -->
     <div class="achievements-panel">
         <div class="achievements-header">
             <h2>成就系統</h2>
+            <div class="achievements-progress">
+                <div class="progress-text">解鎖進度: 0/30</div>
+                <div class="progress-bar">
+                    <div class="progress-fill" style="width: 0%"></div>
+                </div>
+            </div>
             <button class="close-achievements">×</button>
         </div>
         <div class="achievements-categories">
@@ -35,9 +48,20 @@
     <div class="activity-bar">
         <div class="activity-item active" title="遊戲主畫面">
             🎮
+            <div class="tooltip">遊戲主畫面</div>
         </div>
         <div class="activity-item" title="成就系統">
             🏆
+            <div class="tooltip">成就系統</div>
+            <div class="notification-badge">0</div>
+        </div>
+        <div class="activity-item" title="排行榜">
+            📊
+            <div class="tooltip">排行榜</div>
+        </div>
+        <div class="activity-item" title="設定">
+            ⚙️
+            <div class="tooltip">設定</div>
         </div>
     </div>
 
@@ -57,6 +81,9 @@
                     <div class="hand-guides">
                         <div class="hand-guide left">左手指點江山</div>
                         <div class="hand-guide right">右手舉手發言</div>
+                    </div>
+                    <div class="gesture-confidence">
+                        <div class="gesture-confidence-fill"></div>
                     </div>
                 </div>
             </div>
@@ -86,6 +113,42 @@
                         <!-- Achievement icons will be added dynamically -->
                     </div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-label">
+                        <span>📈</span>
+                        遊戲數據
+                    </div>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <span class="stat-name">總分:</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-name">最高連擊:</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-name">完美回答:</span>
+                            <span class="stat-value">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Panel -->
+            <div class="quick-actions">
+                <button class="action-btn" title="暫停遊戲">
+                    <span class="action-icon">⏸️</span>
+                    <span class="action-text">暫停 (ESC)</span>
+                </button>
+                <button class="action-btn" title="重新開始">
+                    <span class="action-icon">🔄</span>
+                    <span class="action-text">重新開始 (R)</span>
+                </button>
+                <button class="action-btn" title="切換音效">
+                    <span class="action-icon">🔊</span>
+                    <span class="action-text">音效 (M)</span>
+                </button>
             </div>
         </div>
 
@@ -94,6 +157,17 @@
             <div class="editor-tab">
                 <span class="tab-icon">📝</span>
                 Debug 人生模擬器
+                <div class="tab-actions">
+                    <span class="tab-action" title="分享">📤</span>
+                    <span class="tab-action" title="幫助">❓</span>
+                </div>
+            </div>
+
+            <!-- Breadcrumbs -->
+            <div class="breadcrumbs">
+                <div class="breadcrumb-item">遊戲</div>
+                <div class="breadcrumb-item">關卡 1</div>
+                <div class="breadcrumb-item">Debug</div>
             </div>
 
             <!-- Timer and Streak -->
@@ -105,6 +179,10 @@
                 <div class="streak-badge">
                     <span>連續交付</span>
                     <div class="streak-count">0</div>
+                </div>
+                <div class="difficulty-indicator">
+                    <span>難度: </span>
+                    <span class="difficulty-level">1</span>
                 </div>
             </div>
 
@@ -126,6 +204,9 @@
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-item">
+            <span class="branch-indicator">main</span>
+        </div>
+        <div class="status-item">
             <span>💪</span> 連續答對: 0
         </div>
         <div class="status-item">
@@ -133,6 +214,9 @@
         </div>
         <div class="status-item">
             <span>☕</span> 咖啡因: 100%
+        </div>
+        <div class="status-item">
+            <span>📊</span> 總分: 0
         </div>
     </div>
 
@@ -198,6 +282,37 @@
         </div>
     </div>
 
+    <!-- Effects Container -->
+    <div class="effects-container"></div>
+
+    <!-- Achievements Container -->
+    <div class="achievements-container"></div>
+
+    <!-- Pause Menu -->
+    <div class="pause-menu" style="display: none;">
+        <div class="pause-content">
+            <h2>休息一下</h2>
+            <p>假裝在思考人生</p>
+            <button class="resume-btn">繼續掙扎</button>
+            <button class="restart-btn">重新投胎</button>
+            <button class="quit-btn">放棄人生</button>
+        </div>
+    </div>
+
+    <!-- Game Over Screen -->
+    <div class="game-over-screen" style="display: none;">
+        <div class="game-over-content">
+            <h2>遊戲結束</h2>
+            <div class="final-stats">
+                <p>總分: <span class="final-score">0</span></p>
+                <p>最高連擊: <span class="final-streak">0</span></p>
+                <p>解鎖成就: <span class="final-achievements">0/30</span></p>
+            </div>
+            <button class="restart-button">重新開始</button>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
