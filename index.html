@@ -39,6 +39,12 @@
         <div class="activity-item" title="成就系統">
             🏆
         </div>
+        <div class="activity-item" title="排行榜">
+            📊
+        </div>
+        <div class="activity-item" title="設定">
+            ⚙️
+        </div>
     </div>
 
     <div class="game-container">
@@ -77,15 +83,6 @@
                         <div class="health-text">100%</div>
                     </div>
                 </div>
-                <div class="stat-item">
-                    <div class="stat-label">
-                        <span>🏆</span>
-                        最新成就
-                    </div>
-                    <div class="achievements-display">
-                        <!-- Achievement icons will be added dynamically -->
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -93,7 +90,7 @@
             <!-- Editor Tab -->
             <div class="editor-tab">
                 <span class="tab-icon">📝</span>
-                Debug 人生模擬器
+                Debug 人生模擬器 - Level 1
             </div>
 
             <!-- Timer and Streak -->
@@ -114,11 +111,9 @@
                 <div class="code-block">
                     <pre></pre>
                 </div>
+                <div class="minimap"></div>
                 <div class="options-container">
-                    <div class="option" data-position="top"></div>
-                    <div class="option" data-position="right"></div>
-                    <div class="option" data-position="bottom"></div>
-                    <div class="option" data-position="left"></div>
+                    <!-- 選項將由 JavaScript 動態生成 -->
                 </div>
                 <div class="gesture-hint">用左手指揮，右手假裝在寫程式</div>
             </div>
@@ -128,13 +123,10 @@
     <!-- Status Bar -->
     <div class="status-bar">
         <div class="status-item">
+            <div class="branch-indicator">新手工程師</div>
+        </div>
+        <div class="status-item">
             <span>💪</span> 連續答對: 0
-        </div>
-        <div class="status-item">
-            <span>🏆</span> 成就: 0/30
-        </div>
-        <div class="status-item">
-            <span>☕</span> 咖啡因: 100%
         </div>
     </div>
 
