@@ -1020,7 +1020,12 @@ function selectOption(index) {
     if (index === gameState.lastAnswer) {
         gameState.sameAnswerCount++;
         if (gameState.sameAnswerCount >= 3) {
-            achievementSystem.unlockAchievement('CTRL_C_MASTER');
+            const context = {
+                sameAnswerCount: gameState.sameAnswerCount,
+                isCorrect: false,
+                health: gameState.health
+            };
+            checkAchievements(context);
         }
     } else {
         gameState.sameAnswerCount = 1;
@@ -1034,6 +1039,11 @@ function selectOption(index) {
     if (gameState.timeLeft <= 3) {
         gameState.panicSwitches++;
         if (gameState.panicSwitches >= 5) {
+            const context = {
+                panicSwitches: gameState.panicSwitches,
+                timeLeft: gameState.timeLeft
+            };
+            checkAchievements(context);
             achievementSystem.showFunnyEffect('panic');
         }
     }
@@ -1050,6 +1060,24 @@ function checkAnswer(selectedIndex) {
     clearInterval(gameState.timer);
     gameState.canAnswer = false;
     const isCorrect = selectedIndex === gameState.currentChallenge.correct;
+    const answerTime = config.challengeTime - gameState.timeLeft;
+
+    // 更新成就檢查的上下文
+    const achievementContext = {
+        wrongStreak: gameState.wrongStreak,
+        streak: gameState.streak,
+        isCorrect: isCorrect,
+        usedKeyboard: gameState.usedKeyboard,
+        timeLeft: gameState.timeLeft,
+        health: gameState.health,
+        sameAnswerCount: gameState.sameAnswerCount,
+        idleTime: gameState.idleTime,
+        panicSwitches: gameState.panicSwitches,
+        changeCount: gameState.changeCount,
+        talkingTime: gameState.talkingTime,
+        caughtBug: gameState.caughtBug,
+        answerTime: answerTime
+    };
 
     if (isCorrect) {
         const timeBonus = Math.floor(gameState.timeLeft / 2);
@@ -1060,7 +1088,8 @@ function checkAnswer(selectedIndex) {
         gameState.health = Math.min(config.maxHealth, 
             gameState.health + config.healthGainOnCorrect + streakBonus);
 
-        checkAchievements(true);
+        // 檢查成就
+        checkAchievements(achievementContext);
 
         if (gameState.streak >= 2) {
             effectsSystem.showStreakEffect(gameState.streak);
@@ -1086,7 +1115,8 @@ function checkAnswer(selectedIndex) {
         gameState.streak = 0;
         gameState.wrongStreak++;
         
-        checkAchievements(false);
+        // 檢查成就
+        checkAchievements(achievementContext);
         
         effectsSystem.stopEffect();
         showFeedback(false, gameState.currentChallenge.explanation);
@@ -1156,20 +1186,16 @@ function updateUI() {
 }
 
 // 檢查並授予成就
-function checkAchievements(isCorrect) {
-    const context = {
-        wrongStreak: gameState.wrongStreak,
-        streak: gameState.streak,
-        isCorrect: isCorrect,
-        usedKeyboard: gameState.usedKeyboard,
-        timeLeft: gameState.timeLeft,
-        health: gameState.health
-    };
-
+function checkAchievements(context) {
     Object.entries(achievementSystem.achievements).forEach(([id, achievement]) => {
         if (!gameState.achievements.includes(id)) {
-            if (achievement.condition(context)) {
-                achievementSystem.unlockAchievement(id);
+            try {
+                if (achievement.condition(context)) {
+                    achievementSystem.unlockAchievement(id);
+                    console.log(`解鎖成就: ${achievement.title}`); // 添加調試信息
+                }
+            } catch (error) {
+                console.error(`檢查成就 ${id} 時發生錯誤:`, error);
             }
         }
     });
@@ -1467,8 +1493,12 @@ setInterval(() => {
     if (gameState.isPlaying) {
         gameState.idleTime = Date.now() - gameState.lastActionTime;
         if (gameState.idleTime > 5000) {
+            const context = {
+                idleTime: gameState.idleTime,
+                isCorrect: false
+            };
+            checkAchievements(context);
             achievementSystem.showFunnyEffect('sleep');
-            achievementSystem.unlockAchievement('SLEEPY_CODER');
         }
     }
 }, 1000);
@@ -1478,4 +1508,13 @@ setInterval(() => {
     if (gameState.isPlaying && Math.random() < 0.1) {
         achievementSystem.showFunnyEffect('bug');
     }
-}, 10000); 
+}, 10000);
+
+// 修改 bug 點擊事件
+function handleBugClick() {
+    const context = {
+        caughtBug: true,
+        isCorrect: false
+    };
+    checkAchievements(context);
+} 
