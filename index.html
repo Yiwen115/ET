@@ -14,6 +14,23 @@
         <!-- Weather effects will be added dynamically -->
     </div>
 
+    <!-- Achievements Panel -->
+    <div class="achievements-panel">
+        <div class="achievements-header">
+            <h2>成就系統</h2>
+            <button class="close-achievements">×</button>
+        </div>
+        <div class="achievements-categories">
+            <button class="category-btn active" data-category="all">全部</button>
+            <button class="category-btn" data-category="gameplay">遊戲</button>
+            <button class="category-btn" data-category="special">特殊</button>
+            <button class="category-btn" data-category="hidden">隱藏</button>
+        </div>
+        <div class="achievements-list">
+            <!-- Achievements will be populated by JavaScript -->
+        </div>
+    </div>
+
     <!-- Activity Bar -->
     <div class="activity-bar">
         <div class="activity-item active" title="遊戲主畫面">
@@ -24,46 +41,27 @@
         </div>
     </div>
 
-    <!-- Loading Screen -->
-    <div id="loading-screen">
-        <div class="loading-content">
-            <h2>正在載入...</h2>
-            <div class="loading-spinner"></div>
-        </div>
-    </div>
-
-    <!-- Tutorial -->
-    <div id="tutorial" style="display: none;">
-        <div class="tutorial-content">
-            <h2>遊戲教學</h2>
-            <p>使用手勢來選擇答案：</p>
-            <ul>
-                <li>👆 向上：選擇上方選項</li>
-                <li>👉 向右：選擇右方選項</li>
-                <li>👇 向下：選擇下方選項</li>
-                <li>👈 向左：選擇左方選項</li>
-            </ul>
-            <p>右手向上確認答案</p>
-            <button id="start-game">開始遊戲</button>
-        </div>
-    </div>
-
-    <!-- Game Container -->
     <div class="game-container">
-        <div class="editor-container">
-            <!-- Main Game Area -->
-            <div class="main-editor">
-                <div class="challenge-container">
-                    <div class="code-block">
-                        <pre></pre>
-                    </div>
-                    <div class="options-container">
-                        <!-- Options will be added dynamically -->
+        <div class="sidebar">
+            <!-- Camera Container with Terminal Style -->
+            <div class="terminal-window">
+                <div class="terminal-header">
+                    <div class="terminal-button terminal-close"></div>
+                    <div class="terminal-button terminal-minimize"></div>
+                    <div class="terminal-button terminal-maximize"></div>
+                    <span class="terminal-title">webcam.js - 手勢識別中</span>
+                </div>
+                <div class="camera-container">
+                    <video id="input-video" playsinline></video>
+                    <canvas id="hand-canvas"></canvas>
+                    <div class="hand-guides">
+                        <div class="hand-guide left">左手指點江山</div>
+                        <div class="hand-guide right">右手舉手發言</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Side Panel -->
+            <!-- Player Stats with Problems Panel Style -->
             <div class="problems-panel">
                 <div class="panel-header">
                     <span class="panel-icon">📊</span>
@@ -91,18 +89,118 @@
             </div>
         </div>
 
-        <!-- Hand Detection -->
-        <div class="camera-container">
-            <video id="input-video" style="display: none;"></video>
-            <canvas id="hand-canvas"></canvas>
-            <div class="gesture-hint">等待手勢...</div>
+        <div class="main-game-area">
+            <!-- Editor Tab -->
+            <div class="editor-tab">
+                <span class="tab-icon">📝</span>
+                Debug 人生模擬器
+            </div>
+
+            <!-- Timer and Streak -->
+            <div class="game-header">
+                <div class="timer-container">
+                    <span>離 deadline 還有</span>
+                    <div class="timer-value">20</div>
+                </div>
+                <div class="streak-badge">
+                    <span>連續交付</span>
+                    <div class="streak-count">0</div>
+                </div>
+            </div>
+
+            <!-- Code Editor Area -->
+            <div class="challenge-container">
+                <div class="line-numbers"></div>
+                <div class="code-block">
+                    <pre></pre>
+                </div>
+                <div class="minimap"></div>
+                <div class="options-container">
+                    <!-- 選項將由 JavaScript 動態生成 -->
+                </div>
+                <div class="gesture-hint">用左手指揮，右手假裝在寫程式</div>
+            </div>
         </div>
     </div>
 
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils"></script>
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="status-item">
+            <span>💪</span> 連續答對: 0
+        </div>
+        <div class="status-item">
+            <span>🏆</span> 成就: 0/30
+        </div>
+        <div class="status-item">
+            <span>☕</span> 咖啡因: 100%
+        </div>
+    </div>
+
+    <!-- Loading Terminal -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <div class="terminal-button terminal-close"></div>
+                <div class="terminal-button terminal-minimize"></div>
+                <div class="terminal-button terminal-maximize"></div>
+                <span class="terminal-title">正在編譯人生...</span>
+            </div>
+            <div class="loading-content">
+                <h2>> npm install life-experience</h2>
+                <div class="loading-bar">
+                    <div class="loading-progress"></div>
+                </div>
+                <div class="loading-tip" style="color: var(--success-color)">
+                    > 正在編譯人生...<br>
+                    > 安裝咖啡因依賴...<br>
+                    > 正在處理 PM 的需求...<br>
+                    > 尋找 Stack Overflow 解答...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tutorial with VS Code Theme -->
+    <div id="tutorial" class="tutorial-overlay" style="display: none;">
+        <div class="terminal-window">
+            <div class="terminal-header">
+                <div class="terminal-button terminal-close"></div>
+                <div class="terminal-button terminal-minimize"></div>
+                <div class="terminal-button terminal-maximize"></div>
+                <span class="terminal-title">遊戲教學</span>
+            </div>
+            <div class="tutorial-content">
+                <h2>🎮 Debug 人生模擬器</h2>
+                <div class="tutorial-steps">
+                    <div class="tutorial-step">
+                        <div class="step-icon">🫱</div>
+                        <div class="step-text">左手指指點點，像個產品經理一樣到處指揮</div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">🫲</div>
+                        <div class="step-text">右手舉手，像在跟PM說"這個需求我上禮拜就做完了"</div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">🙌</div>
+                        <div class="step-text">雙手往下，假裝在打程式但其實在摸魚</div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">🏆</div>
+                        <div class="step-text">解鎖成就，收集各種慘烈人生經驗值</div>
+                    </div>
+                    <div class="tutorial-step">
+                        <div class="step-icon">💀</div>
+                        <div class="step-text">答錯太多次，就像被 Git 打回原形</div>
+                    </div>
+                </div>
+                <button id="start-game" class="game-button">開始掙扎</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
